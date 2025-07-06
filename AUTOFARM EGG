@@ -1,0 +1,39 @@
+-- EggDrop Farm UI + Anti-Fall (เวอร์ชันแก้ล่าสุด)
+
+local Players = game:GetService("Players") local UserInputService = game:GetService("UserInputService") local RunService = game:GetService("RunService") local LocalPlayer = Players.LocalPlayer
+
+-- UI local ScreenGui = Instance.new("ScreenGui") local Frame = Instance.new("Frame") local ToggleButton = Instance.new("TextButton") local Label = Instance.new("TextLabel")
+
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") ScreenGui.Name = "EggFarmUI"
+
+Frame.Parent = ScreenGui Frame.Size = UDim2.new(0, 200, 0, 50) Frame.Position = UDim2.new(0.05, 0, 0.3, 0) Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30) Frame.Active = true
+
+ToggleButton.Parent = Frame ToggleButton.Size = UDim2.new(0, 200, 0, 50) ToggleButton.Position = UDim2.new(0, 0, 0, 0) ToggleButton.Text = "เปิด/ปิด เมนูฟาร์ม [CLOSED]"
+
+Label.Parent = Frame Label.Size = UDim2.new(0, 200, 0, 50) Label.Position = UDim2.new(0, 0, 0, 50) Label.Text = "" Label.TextColor3 = Color3.fromRGB(0, 255, 0) Label.BackgroundTransparency = 1 Label.TextScaled = true
+
+-- Drag local dragging, dragInput, dragStart, startPos local function updateInput(input) local delta = input.Position - dragStart Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end Frame.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true dragStart = input.Position startPos = Frame.Position input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end) end end) Frame.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end) UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then updateInput(input) end end)
+
+-- Farm Button local FarmButton = Instance.new("TextButton") FarmButton.Size = UDim2.new(0, 200, 0, 50) FarmButton.Position = UDim2.new(0, 0, 0, 100) FarmButton.Text = "เริ่มฟาร์ม [OFF]" FarmButton.Visible = false FarmButton.Parent = Frame
+
+local farming = false local antiFallPart local followConnection
+
+local function startAntiFall() if not antiFallPart then antiFallPart = Instance.new("Part") antiFallPart.Anchored = true antiFallPart.CanCollide = true antiFallPart.Size = Vector3.new(10, 0.05, 10) -- แผ่นบางสุด antiFallPart.Transparency = 0.7 antiFallPart.Color = Color3.fromRGB(0, 255, 0) antiFallPart.Name = "AntiFallPlatform" antiFallPart.Parent = workspace end
+
+followConnection = RunService.Heartbeat:Connect(function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        antiFallPart.Position = (hrp.Position - Vector3.new(0, 3, 0))
+    end
+end)
+
+end
+
+local function stopAntiFall() if followConnection then followConnection:Disconnect() followConnection = nil end if antiFallPart then antiFallPart:Destroy() antiFallPart = nil end end
+
+local function teleportToEggDrop() Label.Text = "🟢credit Magma X🟢" startAntiFall() while farming do local character = LocalPlayer.Character local hrp = character and character:FindFirstChild("HumanoidRootPart") local folder = workspace:FindFirstChild("EggDropLocations") if folder and hrp then local eggDrops = {} for _, subFolder in ipairs(folder:GetChildren()) do if subFolder:IsA("Folder") then for _, egg in ipairs(subFolder:GetDescendants()) do if egg:IsA("BasePart") and egg.Name == "EggDrop" then table.insert(eggDrops, egg) end end end end if #eggDrops > 0 then for _, egg in ipairs(eggDrops) do if not farming then break end hrp.CFrame = egg.CFrame + Vector3.new(0, 5, 0) task.wait(0.5) end else Label.Text = "ไม่พบ EggDrop, รอ..." task.wait(1) end else Label.Text = "กำลังโหลด Character/Folder" task.wait(1) end task.wait(0.1) end stopAntiFall() Label.Text = "" end
+
+FarmButton.MouseButton1Click:Connect(function() farming = not farming if farming then FarmButton.Text = "เริ่มฟาร์ม [ON]" task.spawn(teleportToEggDrop) else FarmButton.Text = "เริ่มฟาร์ม [OFF]" end end)
+
+ToggleButton.MouseButton1Click:Connect(function() FarmButton.Visible = not FarmButton.Visible if FarmButton.Visible then Frame.Size = UDim2.new(0, 200, 0, 160) ToggleButton.Text = "เปิด/ปิด เมนูฟาร์ม [OPEN]" else Frame.Size = UDim2.new(0, 200, 0, 50) ToggleButton.Text = "เปิด/ปิด เมนูฟาร์ม [CLOSED]" end end)
+
