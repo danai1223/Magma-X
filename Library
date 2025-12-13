@@ -1,0 +1,173 @@
+local Library = {} local Players = game:GetService("Players") local UIS = game:GetService("UserInputService") local LP = Players.LocalPlayer
+
+-- Create Window function Library:CreateWindow(cfg) local Window = {}
+
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "Dashilibrary"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromScale(0.6,0.7)
+main.Position = UDim2.fromScale(0.2,0.15)
+main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+main.BorderSizePixel = 0
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+
+-- Sidebar
+local side = Instance.new("Frame", main)
+side.Size = UDim2.fromScale(0.23,1)
+side.BackgroundColor3 = Color3.fromRGB(14,14,14)
+side.BorderSizePixel = 0
+Instance.new("UICorner", side).CornerRadius = UDim.new(0,14)
+
+local title = Instance.new("TextLabel", side)
+title.Size = UDim2.fromScale(1,0.12)
+title.BackgroundTransparency = 1
+title.Text = cfg.Title or "Dashi UI"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+
+local tabList = Instance.new("UIListLayout", side)
+tabList.Padding = UDim.new(0,6)
+
+local content = Instance.new("Frame", main)
+content.Position = UDim2.fromScale(0.25,0.05)
+content.Size = UDim2.fromScale(0.72,0.9)
+content.BackgroundTransparency = 1
+
+local Tabs = {}
+
+-- Create Tab
+function Window:CreateTab(name)
+	local Tab = {}
+
+	local btn = Instance.new("TextButton", side)
+	btn.Size = UDim2.fromScale(1,0.08)
+	btn.Text = name
+	btn.BackgroundTransparency = 1
+	btn.TextColor3 = Color3.fromRGB(200,200,200)
+	btn.Font = Enum.Font.Gotham
+
+	local frame = Instance.new("Frame", content)
+	frame.Size = UDim2.fromScale(1,1)
+	frame.Visible = false
+	frame.BackgroundTransparency = 1
+
+	local layout = Instance.new("UIListLayout", frame)
+	layout.Padding = UDim.new(0,12)
+
+	btn.MouseButton1Click:Connect(function()
+		for _,t in pairs(Tabs) do t.Frame.Visible=false end
+		frame.Visible=true
+	end)
+
+	Tabs[#Tabs+1] = {Frame=frame}
+	if #Tabs==1 then frame.Visible=true end
+
+	-- Card helper
+	local function Card(h)
+		local f = Instance.new("Frame")
+		f.Size = UDim2.new(1,0,0,h)
+		f.BackgroundColor3 = Color3.fromRGB(24,24,24)
+		f.BorderSizePixel = 0
+		Instance.new("UICorner", f).CornerRadius = UDim.new(0,12)
+		f.Parent = frame
+		return f
+	end
+
+	function Tab:AddToggle(cfg)
+		local c = Card(70)
+		local t = Instance.new("TextLabel", c)
+		t.Text = cfg.Text
+		t.Position = UDim2.fromScale(0.05,0.25)
+		t.Size = UDim2.fromScale(0.6,0.4)
+		t.BackgroundTransparency = 1
+		t.TextColor3 = Color3.new(1,1,1)
+		t.Font = Enum.Font.Gotham
+
+		local b = Instance.new("TextButton", c)
+		b.Size = UDim2.fromScale(0.15,0.4)
+		b.Position = UDim2.fromScale(0.8,0.3)
+		b.Text = ""
+		b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+		Instance.new("UICorner", b).CornerRadius = UDim.new(1,0)
+
+		local on=false
+		b.MouseButton1Click:Connect(function()
+			on=not on
+			b.BackgroundColor3 = on and Color3.fromRGB(0,170,255) or Color3.fromRGB(40,40,40)
+			pcall(cfg.Callback,on)
+		end)
+	end
+
+	function Tab:AddButton(cfg)
+		local c = Card(60)
+		local b = Instance.new("TextButton", c)
+		b.Size = UDim2.fromScale(0.9,0.6)
+		b.Position = UDim2.fromScale(0.05,0.2)
+		b.Text = cfg.Text
+		b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+		b.TextColor3 = Color3.new(1,1,1)
+		b.Font = Enum.Font.Gotham
+		Instance.new("UICorner", b)
+		b.MouseButton1Click:Connect(function()
+			pcall(cfg.Callback)
+		end)
+	end
+
+	function Tab:AddTextbox(cfg)
+		local c = Card(60)
+		local b = Instance.new("TextBox", c)
+		b.Size = UDim2.fromScale(0.9,0.6)
+		b.Position = UDim2.fromScale(0.05,0.2)
+		b.PlaceholderText = cfg.Placeholder or "Enter"
+		b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+		b.TextColor3 = Color3.new(1,1,1)
+		b.Font = Enum.Font.Gotham
+		Instance.new("UICorner", b)
+		b.FocusLost:Connect(function()
+			pcall(cfg.Callback,b.Text)
+		end)
+	end
+
+	function Tab:AddSlider(cfg)
+		local c = Card(80)
+		local bar = Instance.new("Frame", c)
+		bar.Size = UDim2.fromScale(0.8,0.15)
+		bar.Position = UDim2.fromScale(0.1,0.6)
+		bar.BackgroundColor3 = Color3.fromRGB(40,40,40)
+		Instance.new("UICorner", bar)
+
+		local fill = Instance.new("Frame", bar)
+		fill.BackgroundColor3 = Color3.fromRGB(0,170,255)
+		Instance.new("UICorner", fill)
+	end
+
+	function Tab:AddDropdown(cfg)
+		local c = Card(70)
+		local b = Instance.new("TextButton", c)
+		b.Size = UDim2.fromScale(0.9,0.6)
+		b.Position = UDim2.fromScale(0.05,0.2)
+		b.Text = cfg.Text .. ": " .. cfg.List[1]
+		b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+		b.TextColor3 = Color3.new(1,1,1)
+		b.Font = Enum.Font.Gotham
+		Instance.new("UICorner", b)
+
+		local index=1
+		b.MouseButton1Click:Connect(function()
+			index = index % #cfg.List + 1
+			b.Text = cfg.Text .. ": " .. cfg.List[index]
+			pcall(cfg.Callback,cfg.List[index])
+		end)
+	end
+
+	return Tab
+end
+
+return Window
+
+end
+
+return Library
