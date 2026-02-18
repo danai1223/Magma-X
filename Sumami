@@ -114,49 +114,27 @@ MainTab:Toggle({
     Callback = function(state)
         if state then
             local hrp = getHRP()
-            hrp.CFrame = hrp.CFrame + Vector3.new(0, 30, 0)
-            task.wait(0.2)
+
+            -- วาปขึ้นเล็กน้อย กันตก
+            hrp.CFrame = hrp.CFrame + Vector3.new(0, 10, 0)
+            task.wait(0.1)
 
             bigPart = Instance.new("Part")
-            bigPart.Size = Vector3.new(500, 20, 500)
-            bigPart.Position = Vector3.new(0, 0, 0)
+            bigPart.Size = Vector3.new(500, 10, 500)
             bigPart.Anchored = true
             bigPart.CanCollide = true
             bigPart.Transparency = 0.3
             bigPart.Name = "BigMapPart"
+
+            -- สร้างตรงจุดที่ยืน
+            bigPart.CFrame = hrp.CFrame * CFrame.new(0, -6, 0)
+
             bigPart.Parent = Workspace
         else
             if bigPart then
                 bigPart:Destroy()
                 bigPart = nil
             end
-        end
-    end
-})
-
---// Fly GUI
-MainTab:Button({
-    Title = "Fly Gui",
-    Desc = "Fly Gui",
-    Callback = function()
-        loadstring(game:HttpGet(
-            "https://raw.githubusercontent.com/danai1223/Deishiscrit/refs/heads/main/%E0%B8%9A%E0%B8%B4%E0%B8%99%20V1%20by%20Deishi"
-        ))()
-    end
-})
-
-MainTab:Section({ Title = "Mini Function" })
-
---// Proximity Toggle
-MainTab:Toggle({
-    Title = "Proximity 0",
-    Icon = "hand",
-    Value = false,
-    Callback = function(state)
-        if state then
-            enableProximity()
-        else
-            disableProximity()
         end
     end
 })
