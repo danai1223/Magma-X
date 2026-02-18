@@ -6,8 +6,25 @@ local WindUI = loadstring(game:HttpGet(
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
+
+--// Sky
+for _, v in ipairs(Lighting:GetChildren()) do
+    if v:IsA("Sky") then
+        v:Destroy()
+    end
+end
+
+local sky = Instance.new("Sky")
+sky.SkyboxBk = "rbxassetid://117199031447036"
+sky.SkyboxDn = "rbxassetid://117199031447036"
+sky.SkyboxFt = "rbxassetid://117199031447036"
+sky.SkyboxLf = "rbxassetid://117199031447036"
+sky.SkyboxRt = "rbxassetid://117199031447036"
+sky.SkyboxUp = "rbxassetid://117199031447036"
+sky.Parent = Lighting
 
 --// States
 local proxTask = nil
@@ -114,27 +131,36 @@ MainTab:Toggle({
     Callback = function(state)
         if state then
             local hrp = getHRP()
-
-            -- วาปขึ้นเล็กน้อย กันตก
             hrp.CFrame = hrp.CFrame + Vector3.new(0, 10, 0)
             task.wait(0.1)
 
             bigPart = Instance.new("Part")
-            bigPart.Size = Vector3.new(10000, 25, 10000)
+            bigPart.Size = Vector3.new(10000, 70, 10000)
             bigPart.Anchored = true
             bigPart.CanCollide = true
             bigPart.Transparency = 0.3
             bigPart.Name = "BigMapPart"
-
-            -- สร้างตรงจุดที่ยืน
-            bigPart.CFrame = hrp.CFrame * CFrame.new(0, -6, 0)
-
+            bigPart.CFrame = hrp.CFrame * CFrame.new(0, -8, 0)
             bigPart.Parent = Workspace
         else
             if bigPart then
                 bigPart:Destroy()
                 bigPart = nil
             end
+        end
+    end
+})
+
+--// Proximity Toggle
+MainTab:Toggle({
+    Title = "Proximity 0",
+    Icon = "hand",
+    Value = false,
+    Callback = function(state)
+        if state then
+            enableProximity()
+        else
+            disableProximity()
         end
     end
 })
