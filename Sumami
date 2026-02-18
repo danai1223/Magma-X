@@ -1,16 +1,79 @@
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+--// Services
+local WindUI = loadstring(game:HttpGet(
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+))()
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
-local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
+local player = Players.LocalPlayer
+
+--// States
 local proxTask = nil
 local proxEnabled = false
 local infJumpEnabled = false
 local infJumpConnection = nil
+local bigPart = nil
 
+--// Character utils
+local function getCharacter()
+    return player.Character or player.CharacterAdded:Wait()
+end
+
+local function getHumanoid()
+    return getCharacter():WaitForChild("Humanoid")
+end
+
+local function getHRP()
+    return getCharacter():WaitForChild("HumanoidRootPart")
+end
+
+--// Proximity
+local function applyProximityZero()
+    for _, v in ipairs(Workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            v.HoldDuration = 0
+        end
+    end
+end
+
+local function enableProximity()
+    if proxTask then return end
+    proxEnabled = true
+    proxTask = task.spawn(function()
+        while proxEnabled do
+            applyProximityZero()
+            task.wait(1)
+        end
+    end)
+end
+
+local function disableProximity()
+    proxEnabled = false
+    proxTask = nil
+end
+
+--// Inf Jump
+local function enableInfJump()
+    if infJumpConnection then return end
+    infJumpEnabled = true
+    infJumpConnection = UserInputService.JumpRequest:Connect(function()
+        if infJumpEnabled then
+            getHumanoid():ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end)
+end
+
+local function disableInfJump()
+    infJumpEnabled = false
+    if infJumpConnection then
+        infJumpConnection:Disconnect()
+        infJumpConnection = nil
+    end
+end
+
+--// Window
 local Window = WindUI:CreateWindow({
     Title = "Zaza Hub",
     Icon = "door-open",
@@ -31,67 +94,60 @@ local Window = WindUI:CreateWindow({
 
 Window:Tag({
     Title = "v1.0",
-    Icon = "",
     Color = Color3.fromHex("#30ff6a"),
     Radius = 8
 })
 
+--// Tab
 local MainTab = Window:Tab({
     Title = "Main",
-    Icon = "bird",
-    Locked = false
+    Icon = "bird"
 })
 
-MainTab:Section({ Title = "Main" })
- 
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+MainTab:Section({ Title = "Main" })
 
-local bigPart
-
-local Toggle = MainTab:Toggle({
+--// Big Part Toggle
+MainTab:Toggle({
     Title = "Make Part",
     Desc = "Make Big Part",
     Value = false,
     Callback = function(state)
-
         if state then
-            -- วาปขึ้นไปก่อน (สูงกว่าจุดสร้าง Part)
+            local hrp = getHRP()
             hrp.CFrame = hrp.CFrame + Vector3.new(0, 30, 0)
             task.wait(0.2)
 
-            -- สร้าง Part ใหญ่ครอบแมพ
             bigPart = Instance.new("Part")
-            bigPart.Size = Vector3.new(500, 20, 500) -- กว้าง ยาว สูง
-            bigPart.Position = Vector3.new(0, 0, 0) -- ปรับตามแมพ
+            bigPart.Size = Vector3.new(500, 20, 500)
+            bigPart.Position = Vector3.new(0, 0, 0)
             bigPart.Anchored = true
             bigPart.CanCollide = true
             bigPart.Transparency = 0.3
             bigPart.Name = "BigMapPart"
-            bigPart.Parent = workspace
-
+            bigPart.Parent = Workspace
         else
-            -- ปิด Toggle ลบ Part
             if bigPart then
                 bigPart:Destroy()
                 bigPart = nil
             end
         end
-
     end
 })
 
-local Button = MainTab:Button({
+--// Fly GUI
+MainTab:Button({
     Title = "Fly Gui",
     Desc = "Fly Gui",
-    Locked = false,
     Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Deishiscrit/refs/heads/main/%E0%B8%9A%E0%B8%B4%E0%B8%99%20V1%20by%20Deishi"))()
+        loadstring(game:HttpGet(
+            "https://raw.githubusercontent.com/danai1223/Deishiscrit/refs/heads/main/%E0%B8%9A%E0%B8%B4%E0%B8%99%20V1%20by%20Deishi"
+        ))()
     end
 })
 
-MainTab:Section({ Title = "Mini Function" })
+MainTab:Section({ Title = "Mini Function" })
 
+--// Proximity Toggle
 MainTab:Toggle({
     Title = "Proximity 0",
     Icon = "hand",
@@ -105,8 +161,9 @@ MainTab:Toggle({
     end
 })
 
+--// Inf Jump Toggle
 MainTab:Toggle({
-    Title = "infjump",
+    Title = "Inf Jump",
     Icon = "arrow-up",
     Value = false,
     Callback = function(state)
@@ -119,51 +176,3 @@ MainTab:Toggle({
 })
 
 Window.Icon:Enable()
-
-
-function getHumanoid()
-    local char = player.Character or player.CharacterAdded:Wait()
-    return char:WaitForChild("Humanoid")
-end
-
-function applyProximityZero()
-    for _, v in ipairs(Workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") and v.HoldDuration ~= 0 then
-            v.HoldDuration = 0
-        end
-    end
-end
-
-function enableProximity()
-    if proxTask then return end
-    proxEnabled = true
-    proxTask = task.spawn(function()
-        while proxEnabled do
-            applyProximityZero()
-            task.wait(1)
-        end
-    end)
-end
-
-function disableProximity()
-    proxEnabled = false
-    proxTask = nil
-end
-
-function enableInfJump()
-    if infJumpConnection then return end
-    infJumpEnabled = true
-    infJumpConnection = UserInputService.JumpRequest:Connect(function()
-        if infJumpEnabled then
-            getHumanoid():ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end)
-end
-
-function disableInfJump()
-    infJumpEnabled = false
-    if infJumpConnection then
-        infJumpConnection:Disconnect()
-        infJumpConnection = nil
-    end
-end
