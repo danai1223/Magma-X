@@ -120,7 +120,7 @@ MainTab:Toggle({
             task.wait(0.1)
 
             bigPart = Instance.new("Part")
-            bigPart.Size = Vector3.new(500, 10, 500)
+            bigPart.Size = Vector3.new(10000, 25, 10000)
             bigPart.Anchored = true
             bigPart.CanCollide = true
             bigPart.Transparency = 0.3
