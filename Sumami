@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
@@ -32,6 +33,9 @@ local proxEnabled = false
 local infJumpEnabled = false
 local infJumpConnection = nil
 local bigPart = nil
+
+local magnetEnabled = false
+local magnetConn = nil
 
 --// Character utils
 local function getCharacter()
@@ -90,6 +94,64 @@ local function disableInfJump()
     end
 end
 
+--// Magnet Coin
+local function getOrSetPrimary(model)
+    if model.PrimaryPart then return model.PrimaryPart end
+    for _, d in ipairs(model:GetDescendants()) do
+        if d:IsA("BasePart") then
+            model.PrimaryPart = d
+            return d
+        end
+    end
+    return nil
+end
+
+local function setCollision(model, state)
+    for _, d in ipairs(model:GetDescendants()) do
+        if d:IsA("BasePart") then
+            d.CanCollide = state
+        end
+    end
+end
+
+local function enableMagnet()
+    if magnetConn then return end
+    magnetEnabled = true
+    magnetConn = RunService.Heartbeat:Connect(function()
+        if not magnetEnabled then return end
+        local hrp = getHRP()
+        local folder = Workspace:FindFirstChild("CandyEventParts")
+        if not folder then return end
+        for _, m in ipairs(folder:GetChildren()) do
+            if m:IsA("Model") then
+                local pp = getOrSetPrimary(m)
+                if pp then
+                    setCollision(m, false)
+                    m:SetPrimaryPartCFrame(
+                        CFrame.new(hrp.Position + Vector3.new(0, 2, 0))
+                    )
+                end
+            end
+        end
+    end)
+end
+
+local function disableMagnet()
+    magnetEnabled = false
+    if magnetConn then
+        magnetConn:Disconnect()
+        magnetConn = nil
+    end
+    local folder = Workspace:FindFirstChild("CandyEventParts")
+    if folder then
+        for _, m in ipairs(folder:GetChildren()) do
+            if m:IsA("Model") then
+                setCollision(m, true)
+            end
+        end
+    end
+end
+
 --// Window
 local Window = WindUI:CreateWindow({
     Title = "Zaza Hub",
@@ -115,15 +177,13 @@ Window:Tag({
     Radius = 8
 })
 
---// Tab
-local MainTab = Window:Tab({
-    Title = "Main",
-    Icon = "bird"
-})
+--// Tabs
+local MainTab = Window:Tab({ Title = "Main", Icon = "bird" })
+local EventTab = Window:Tab({ Title = "Event", Icon = "star" })
 
+--// Main
 MainTab:Section({ Title = "Main" })
 
---// Big Part Toggle
 MainTab:Toggle({
     Title = "Make Part",
     Desc = "Make Big Part",
@@ -135,12 +195,12 @@ MainTab:Toggle({
             task.wait(0.1)
 
             bigPart = Instance.new("Part")
-            bigPart.Size = Vector3.new(10000, 110, 10000)
+            bigPart.Size = Vector3.new(50000, 110, 50000)
             bigPart.Anchored = true
             bigPart.CanCollide = true
             bigPart.Transparency = 0.3
             bigPart.Name = "BigMapPart"
-            bigPart.CFrame = hrp.CFrame * CFrame.new(0, -8, 0)
+            bigPart.CFrame = hrp.CFrame * CFrame.new(0, -60, 0)
             bigPart.Parent = Workspace
         else
             if bigPart then
@@ -151,42 +211,45 @@ MainTab:Toggle({
     end
 })
 
-local Button = MainTab:Button({
+MainTab:Button({
     Title = "Fly Gui",
     Desc = "Fly Gui",
     Locked = false,
     Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Deishiscrit/refs/heads/main/%E0%B8%9A%E0%B8%B4%E0%B8%99%20V1%20by%20Deishi"))()
+        loadstring(game:HttpGet(
+            "https://raw.githubusercontent.com/danai1223/Deishiscrit/refs/heads/main/%E0%B8%9A%E0%B8%B4%E0%B8%99%20V1%20by%20Deishi"
+        ))()
     end
 })
 
 MainTab:Section({ Title = "Mini Function" })
 
---// Proximity Toggle
 MainTab:Toggle({
     Title = "Proximity 0",
     Icon = "hand",
     Value = false,
     Callback = function(state)
-        if state then
-            enableProximity()
-        else
-            disableProximity()
-        end
+        if state then enableProximity() else disableProximity() end
     end
 })
 
---// Inf Jump Toggle
 MainTab:Toggle({
     Title = "Inf Jump",
     Icon = "arrow-up",
     Value = false,
     Callback = function(state)
-        if state then
-            enableInfJump()
-        else
-            disableInfJump()
-        end
+        if state then enableInfJump() else disableInfJump() end
+    end
+})
+
+--// Event
+EventTab:Section({ Title = "Event" })
+
+EventTab:Toggle({
+    Title = "Magnet Coin",
+    Value = false,
+    Callback = function(state)
+        if state then enableMagnet() else disableMagnet() end
     end
 })
 
