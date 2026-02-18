@@ -135,7 +135,7 @@ MainTab:Toggle({
             task.wait(0.1)
 
             bigPart = Instance.new("Part")
-            bigPart.Size = Vector3.new(10000, 70, 10000)
+            bigPart.Size = Vector3.new(10000, 110, 10000)
             bigPart.Anchored = true
             bigPart.CanCollide = true
             bigPart.Transparency = 0.3
@@ -150,6 +150,17 @@ MainTab:Toggle({
         end
     end
 })
+
+local Button = MainTab:Button({
+    Title = "Fly Gui",
+    Desc = "Fly Gui",
+    Locked = false,
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Deishiscrit/refs/heads/main/%E0%B8%9A%E0%B8%B4%E0%B8%99%20V1%20by%20Deishi"))()
+    end
+})
+
+MainTab:Section({ Title = "Mini Function" })
 
 --// Proximity Toggle
 MainTab:Toggle({
