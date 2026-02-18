@@ -5,13 +5,6 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
-local proxEnabled = false
-local infJumpEnabled = false
-
-local proxTask
-local infJumpConnection
-
-
 local Window = WindUI:CreateWindow({
     Title = "Zaza Hub",
     Icon = "door-open",
@@ -44,71 +37,42 @@ local MainTab = Window:Tab({
 })
 
 MainTab:Section({ Title = "Main" })
+ 
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local bigPart -- เก็บ Part ไว้ใช้ตอนปิด Toggle
 
-local player = Players.LocalPlayer
-local UNDERGROUND_DEPTH = -5
+local Toggle = Tab:Toggle({
+    Title = "Make Part",
+    Desc = "Make Big Part",
+    Value = false,
+    Callback = function(state)
 
-local followConnection
-local invisSeat
+        if state then
+            -- วาปขึ้นไปก่อน (สูงกว่าจุดสร้าง Part)
+            hrp.CFrame = hrp.CFrame + Vector3.new(0, 30, 0)
+            task.wait(0.2)
 
-local function setTransparency(character, value)
-	for _, v in ipairs(character:GetDescendants()) do
-		if v:IsA("BasePart") or v:IsA("Decal") then
-			v.Transparency = value
-		end
-	end
-end
+            -- สร้าง Part ใหญ่ครอบแมพ
+            bigPart = Instance.new("Part")
+            bigPart.Size = Vector3.new(500, 20, 500) -- กว้าง ยาว สูง
+            bigPart.Position = Vector3.new(0, 0, 0) -- ปรับตามแมพ
+            bigPart.Anchored = true
+            bigPart.CanCollide = true
+            bigPart.Transparency = 0.3
+            bigPart.Name = "BigMapPart"
+            bigPart.Parent = workspace
 
-local function followUnderGround(seat, character)
-	local hrp = character:WaitForChild("HumanoidRootPart")
-	followConnection = RunService.RenderStepped:Connect(function()
-		if seat and seat.Parent and hrp then
-			seat.CFrame = hrp.CFrame * CFrame.new(0, UNDERGROUND_DEPTH, 0)
-		end
-	end)
-end
+        else
+            -- ปิด Toggle ลบ Part
+            if bigPart then
+                bigPart:Destroy()
+                bigPart = nil
+            end
+        end
 
-MainTab:Toggle({
-	Title = "God Mode",
-	Icon = "hand",
-	Value = false,
-	Callback = function(state)
-		local character = player.Character or player.CharacterAdded:Wait()
-		local hrp = character:WaitForChild("HumanoidRootPart")
-
-		if state then
-			invisSeat = Instance.new("Seat")
-			invisSeat.Name = "invischair"
-			invisSeat.Transparency = 1
-			invisSeat.CanCollide = false
-			invisSeat.Anchored = false
-			invisSeat.Parent = workspace
-			invisSeat.CFrame = hrp.CFrame * CFrame.new(0, UNDERGROUND_DEPTH, 0)
-
-			local weld = Instance.new("Weld")
-			weld.Part0 = invisSeat
-			weld.Part1 = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
-			weld.Parent = invisSeat
-
-			followUnderGround(invisSeat, character)
-			setTransparency(character, 0.5)
-		else
-			if followConnection then
-				followConnection:Disconnect()
-				followConnection = nil
-			end
-
-			if invisSeat then
-				invisSeat:Destroy()
-				invisSeat = nil
-			end
-
-			setTransparency(character, 0)
-		end
-	end
+    end
 })
 
 local Button = MainTab:Button({
