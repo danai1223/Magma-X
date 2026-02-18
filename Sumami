@@ -43,7 +43,7 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 
 local bigPart -- เก็บ Part ไว้ใช้ตอนปิด Toggle
 
-local Toggle = Tab:Toggle({
+local Toggle = MainTab:Toggle({
     Title = "Make Part",
     Desc = "Make Big Part",
     Value = false,
