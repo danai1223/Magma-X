@@ -1,0 +1,199 @@
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
+
+local proxEnabled = false
+local infJumpEnabled = false
+
+local proxTask
+local infJumpConnection
+
+
+local Window = WindUI:CreateWindow({
+    Title = "Zaza Hub",
+    Icon = "door-open",
+    Author = "by Zaza Hub",
+    Folder = "ZazaSave",
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    Background = "rbxassetid://117199031447036",
+    BackgroundImageTransparency = 0.7,
+    HideSearchBar = true,
+    ScrollBarEnabled = false
+})
+
+Window:Tag({
+    Title = "v1.0",
+    Icon = "",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 8
+})
+
+local MainTab = Window:Tab({
+    Title = "Main",
+    Icon = "bird",
+    Locked = false
+})
+
+MainTab:Section({ Title = "Main" })
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local UNDERGROUND_DEPTH = -5
+
+local followConnection
+local invisSeat
+
+local function setTransparency(character, value)
+	for _, v in ipairs(character:GetDescendants()) do
+		if v:IsA("BasePart") or v:IsA("Decal") then
+			v.Transparency = value
+		end
+	end
+end
+
+local function followUnderGround(seat, character)
+	local hrp = character:WaitForChild("HumanoidRootPart")
+	followConnection = RunService.RenderStepped:Connect(function()
+		if seat and seat.Parent and hrp then
+			seat.CFrame = hrp.CFrame * CFrame.new(0, UNDERGROUND_DEPTH, 0)
+		end
+	end)
+end
+
+MainTab:Toggle({
+	Title = "God Mode",
+	Icon = "hand",
+	Value = false,
+	Callback = function(state)
+		local character = player.Character or player.CharacterAdded:Wait()
+		local hrp = character:WaitForChild("HumanoidRootPart")
+
+		if state then
+			invisSeat = Instance.new("Seat")
+			invisSeat.Name = "invischair"
+			invisSeat.Transparency = 1
+			invisSeat.CanCollide = false
+			invisSeat.Anchored = false
+			invisSeat.Parent = workspace
+			invisSeat.CFrame = hrp.CFrame * CFrame.new(0, UNDERGROUND_DEPTH, 0)
+
+			local weld = Instance.new("Weld")
+			weld.Part0 = invisSeat
+			weld.Part1 = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+			weld.Parent = invisSeat
+
+			followUnderGround(invisSeat, character)
+			setTransparency(character, 0.5)
+		else
+			if followConnection then
+				followConnection:Disconnect()
+				followConnection = nil
+			end
+
+			if invisSeat then
+				invisSeat:Destroy()
+				invisSeat = nil
+			end
+
+			setTransparency(character, 0)
+		end
+	end
+})
+
+local Button = MainTab:Button({
+    Title = "Fly Gui",
+    Desc = "Fly Gui",
+    Locked = false,
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Deishiscrit/refs/heads/main/%E0%B8%9A%E0%B8%B4%E0%B8%99%20V1%20by%20Deishi"))()
+    end
+})
+
+MainTab:Section({ Title = "Mini Function" })
+
+MainTab:Toggle({
+    Title = "Proximity 0",
+    Icon = "hand",
+    Value = false,
+    Callback = function(state)
+        if state then
+            enableProximity()
+        else
+            disableProximity()
+        end
+    end
+})
+
+MainTab:Toggle({
+    Title = "infjump",
+    Icon = "arrow-up",
+    Value = false,
+    Callback = function(state)
+        if state then
+            enableInfJump()
+        else
+            disableInfJump()
+        end
+    end
+})
+
+Window.Icon:Enable()
+
+
+function getHumanoid()
+    local char = player.Character or player.CharacterAdded:Wait()
+    return char:WaitForChild("Humanoid")
+end
+
+function applyProximityZero()
+    for _, v in ipairs(Workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and v.HoldDuration ~= 0 then
+            v.HoldDuration = 0
+        end
+    end
+end
+
+function enableProximity()
+    if proxTask then return end
+    proxEnabled = true
+    proxTask = task.spawn(function()
+        while proxEnabled do
+            applyProximityZero()
+            task.wait(1)
+        end
+    end)
+end
+
+function disableProximity()
+    proxEnabled = false
+    proxTask = nil
+end
+
+function enableInfJump()
+    if infJumpConnection then return end
+    infJumpEnabled = true
+    infJumpConnection = UserInputService.JumpRequest:Connect(function()
+        if infJumpEnabled then
+            getHumanoid():ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end)
+end
+
+function disableInfJump()
+    infJumpEnabled = false
+    if infJumpConnection then
+        infJumpConnection:Disconnect()
+        infJumpConnection = nil
+    end
+end
