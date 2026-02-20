@@ -1,0 +1,329 @@
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "Zaza Hub | Dead rail",
+    Icon = "door-open",
+    Author = "by Zaza Hub",
+    Folder = "ZazaSave",
+    
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+
+    Background = "rbxassetid://117199031447036", -- ðŸ‘ˆ à¸£à¸¹à¸›à¸™à¸µà¹‰
+    BackgroundImageTransparency = 0.7,
+
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+    
+    User = {
+    Enabled = true,
+    Anonymous = false,
+    Callback = function()
+        print("Icon User ")
+    end,
+    }
+  })
+  Window:Tag({
+    Title = "v1.0.0",
+    Icon = "",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 8, -- from 0 to 13
+})
+
+local MainTab = Window:Tab({
+    Title = "Main",
+    Icon = "bird",
+    Locked = false,
+})
+
+local MiscTab = Window:Tab({
+    Title = "Misc",
+    Icon = "bird",
+    Locked = false,
+})
+
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+MainTab:Section({ Title = " Combat" })
+
+local SwingSpam = false
+
+MainTab:Toggle({
+    Title = "Damage Aura",
+    Description = "1-2 M.",
+    Default = false,
+    Callback = function(v)
+        SwingSpam = v
+        if not v then return end
+
+        task.spawn(function()
+            while SwingSpam do
+                pcall(function()
+                    local args = {
+                        game:GetService("Players").LocalPlayer.Character:WaitForChild("Shovel"),
+                        1771329621.239174,
+                        vector.create(-0.21050569415092468, -0.4543541669845581, 0.8655920624732971)
+                    }
+
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Shared")
+                        :WaitForChild("Universe")
+                        :WaitForChild("Network")
+                        :WaitForChild("RemoteEvent")
+                        :WaitForChild("SwingMelee")
+                        :FireServer(unpack(args))
+                end)
+                task.wait()
+            end
+        end)
+    end
+})
+
+MainTab:Section({ Title = " Teleport" })
+
+local TeleportPoints = {
+    ["10 Km"] = CFrame.new(-179.910492, 38.0874672, 20023.7422, 0.986021101, 0, -0.166620389, 0, 1, 0, 0.166620389, 0, 0.986021101),
+    ["20 Km"] = CFrame.new(-566.528748, 38.0874672, 10089.1758, 0.995491862, 0, -0.0948471352, 0, 1, 0, 0.0948471352, 0, 0.995491862),
+    ["30 Km"] = CFrame.new(-552.581238, 38.0874672, 178.181549, 0.993567169, 0, 0.113244563, 0, 1, 0, -0.113244563, 0, 0.993567169),
+    ["40 Km"] = CFrame.new(-158.184982, 38.0874672, -9757.87012, 0.987331212, 0, 0.158672854, 0, 1, 0, -0.158672854, 0, 0.987331212),
+    ["50 Km"] = CFrame.new(57.1879311, 38.0874672, -19964.9395, -0.999732733, 0, 0.0231327545, 0, 1, 0, -0.0231327545, 0, -0.999732733),
+    ["60 Km"] = CFrame.new(-223.599609, 38.0874672, -29597.8594, 0.985171437, 0, -0.171572819, 0, 1, 0, 0.171572819, 0, 0.985171437),
+    ["70 Km"] = CFrame.new(-589.845764, 38.0874672, -39529.8789, 0.997205853, 0, -0.0747026429, 0, 1, 0, 0.0747026429, 0, 0.997205853),
+    ["End"] = CFrame.new(-160.974625, 28.0729561, -49040.8633, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+}
+
+local SelectedPoint
+
+MainTab:Dropdown({
+    Title = "Select Distance",
+    Values = { "10 Km","20 Km","30 Km","40 Km","50 Km","60 Km","70 Km","End" },
+    Callback = function(option)
+        SelectedPoint = option
+    end
+})
+
+local Teleporting = false
+
+MainTab:Button({
+    Title = "Teleport",
+    Desc = "Teleport",
+    Locked = false,
+    Callback = function()
+        if Teleporting then return end
+        if not SelectedPoint then return end
+
+        local target = TeleportPoints[SelectedPoint]
+        if not target then return end
+
+        Teleporting = true
+
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local humanoid = char:WaitForChild("Humanoid")
+        local hrp = char:WaitForChild("HumanoidRootPart")
+
+        task.spawn(function()
+            while humanoid.Sit == false do
+                hrp.CFrame = target
+                task.wait(0.05)
+            end
+            Teleporting = false
+        end)
+    end
+})
+
+MainTab:Section({ Title = " Bond" })
+
+local AutoBondSystem = false
+local AutoBondThread
+
+MainTab:Toggle({
+    Title = "Bond Farm",
+    Default = false,
+    Callback = function(v)
+        AutoBondSystem = v
+
+        if not v then
+            if AutoBondThread then
+                task.cancel(AutoBondThread)
+                AutoBondThread = nil
+            end
+            return
+        end
+
+        AutoBondThread = task.spawn(function()
+            while AutoBondSystem do
+
+                if game.PlaceId == LOBBY_PLACE then
+                    local zones = workspace:FindFirstChild("PartyZones")
+                    if zones then
+                        local zone = zones:FindFirstChildWhichIsA("Model")
+                        if zone then
+                            teleportToModel(zone)
+                            task.wait(1)
+                            pcall(function()
+                                CreateParty:FireServer({
+                                    isPrivate = true,
+                                    maxMembers = 1,
+                                    trainId = "default",
+                                    gameMode = "Normal"
+                                })
+                            end)
+                        end
+                    end
+                end
+
+                if game.PlaceId == GAME_PLACE then
+                    local char = LocalPlayer.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if hrp and TeleportPoints and TeleportPoints["End"] then
+                        hrp.CFrame = TeleportPoints["End"]
+                    end
+
+                    task.wait(5)
+
+                    local found = false
+                    local container = workspace:FindFirstChild("ObjectModels")
+                    if container then
+                        for _, obj in ipairs(container:GetChildren()) do
+                            if not AutoBondSystem then break end
+                            if obj:IsA("Model") and obj.Name:lower() == "bond" then
+                                local id = obj:GetAttribute("serverEntity")
+                                if typeof(id) == "number" then
+                                    found = true
+                                    pcall(function()
+                                        Actionable:FireServer(id)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+
+                    if not found then
+                        TeleportService:Teleport(LOBBY_PLACE, LocalPlayer)
+                    end
+                end
+
+                task.wait(1)
+            end
+        end)
+    end
+})
+
+local BondActionableSpam = false
+local BondThread
+
+MainTab:Toggle({
+    Title = "Auto Collect Bond",
+    Default = false,
+    Callback = function(v)
+        BondActionableSpam = v
+        if not v then return end
+
+        if BondThread then
+            task.cancel(BondThread)
+            BondThread = nil
+        end
+
+        BondThread = task.spawn(function()
+            local Remote = game:GetService("ReplicatedStorage")
+                :WaitForChild("Shared")
+                :WaitForChild("Universe")
+                :WaitForChild("Network")
+                :WaitForChild("RemoteEvent")
+                :WaitForChild("Actionable")
+
+            while BondActionableSpam do
+                local container = workspace:FindFirstChild("ObjectModels")
+                if container then
+                    for _, obj in ipairs(container:GetChildren()) do
+                        if not BondActionableSpam then break end
+
+                        if obj:IsA("Model") and obj.Name:lower() == "bond" then
+                       
+                            local serverEntity = obj:GetAttribute("serverEntity")
+                            if typeof(serverEntity) == "number" then
+                                pcall(function()
+                                    Remote:FireServer(serverEntity)
+                                end)
+                            end
+                        end
+                    end
+                end
+
+                task.wait()
+            end
+        end)
+    end
+})
+
+MiscTab:Section({ Title = "Misc" })
+
+local InfJump = false
+local InfJumpConn
+
+MiscTab:Toggle({
+    Title = "Inf Jump",
+    Default = false,
+    Callback = function(v)
+        InfJump = v
+
+        if InfJumpConn then
+            InfJumpConn:Disconnect()
+            InfJumpConn = nil
+        end
+
+        if not v then return end
+
+        InfJumpConn = UIS.InputBegan:Connect(function(input, gp)
+            if gp then return end
+            if not InfJump then return end
+            if input.KeyCode == Enum.KeyCode.Space then
+                local char = Player.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end
+        end)
+    end
+})
+
+local Noclip = false
+local NoclipConn
+
+MiscTab:Toggle({
+    Title = "Noclip",
+    Default = false,
+    Callback = function(v)
+        Noclip = v
+
+        if NoclipConn then
+            NoclipConn:Disconnect()
+            NoclipConn = nil
+        end
+
+        if not v then return end
+
+        NoclipConn = RunService.Stepped:Connect(function()
+            if not Noclip then return end
+            local char = Player.Character
+            if not char then return end
+
+            for _, part in ipairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
+    end
+})
+
+Window.Icon:Enable()
