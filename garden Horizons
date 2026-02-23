@@ -1,0 +1,155 @@
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local player = game.Players.LocalPlayer
+
+local Window = WindUI:CreateWindow({
+    Title = "Zaza Hub | Garden Horizons",
+    Icon = "door-open",
+    Author = "by Zaza Hub",
+    Folder = "ZazaSave",
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    HideSearchBar = true,
+    ScrollBarEnabled = false
+})
+
+Window:Tag({
+    Title = "v1.0",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 8
+})
+
+local MainTab = Window:Tab({ Title = "Main", Icon = "" })
+
+-- ===== Automatic =====
+MainTab:Section({ Title = "Automatic" })
+
+local autoHarvest = false
+
+MainTab:Toggle({
+    Title = "Auto Harvest",
+    Desc = "Auto Harvest",
+    Value = false,
+    Callback = function(state)
+        autoHarvest = state
+        if state then
+            task.spawn(function()
+                while autoHarvest do
+                    for _, v in ipairs(workspace:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") and v.Name == "HarvestPrompt" then
+                            fireproximityprompt(v)
+                        end
+                    end
+                    task.wait(0.4)
+                end
+            end)
+        end
+    end
+})
+
+local autoSell = false
+
+MainTab:Toggle({
+    Title = "Auto Sell All",
+    Desc = "Automatically sell all items",
+    Value = false,
+    Callback = function(state)
+        autoSell = state
+        if state then
+            task.spawn(function()
+                while autoSell do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("RemoteEvents")
+                        :WaitForChild("SellItems")
+                        :InvokeServer("SellAll")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+-- ===== Auto Buy =====
+MainTab:Section({ Title = "Auto Buy" })
+
+local gear = {
+    "Watering Can",
+    "Basic Sprinkler",
+    "Harvest Bell",
+    "Turbo Sprinkler",
+    "Favorite Tool",
+    "Super Sprinkler"
+}
+
+local seeds = {
+    "Corn Seed", "Carrot Seed", "Onion Seed", "Strawberry Seed", "Mushroom Seed",
+    "Beetroot Seed", "Tomato Seed", "Apple Seed", "Rose Seed", "Wheat Seed",
+    "Banana Seed", "Plum Seed", "Potato Seed", "Cabbage Seed", "Cherry Seed"
+}
+
+local selectedGears = {}
+local selectedSeeds = {}
+local autoBuy = false
+
+MainTab:Dropdown({
+    Title = "Gear select",
+    Desc = "Select gears to auto buy",
+    Values = gear,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(option)
+        selectedGears = option
+    end
+})
+
+MainTab:Dropdown({
+    Title = "Seed select",
+    Desc = "Select seeds to auto buy",
+    Values = seeds,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(option)
+        selectedSeeds = option
+    end
+})
+
+MainTab:Toggle({
+    Title = "Auto Buy",
+    Desc = "Automatically buy selected items",
+    Value = false,
+    Callback = function(state)
+        autoBuy = state
+        if state then
+            task.spawn(function()
+                while autoBuy do
+                    for _, gearName in ipairs(selectedGears) do
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("RemoteEvents")
+                            :WaitForChild("PurchaseShopItem")
+                            :InvokeServer("GearShop", gearName)
+                        task.wait(0.3)
+                    end
+
+                    for _, seedName in ipairs(selectedSeeds) do
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("RemoteEvents")
+                            :WaitForChild("PurchaseShopItem")
+                            :InvokeServer("SeedShop", seedName)
+                        task.wait(0.3)
+                    end
+
+                    task.wait(0.8)
+                end
+            end)
+        end
+    end
+})
+
+Window.Icon:Enable()
