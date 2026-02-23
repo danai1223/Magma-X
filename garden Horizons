@@ -28,7 +28,32 @@ Window:Tag({
 
 local MainTab = Window:Tab({ Title = "Main", Icon = "" })
 
--- ===== Auto Sell + Teleport =====
+-- ===== Automatic =====
+MainTab:Section({ Title = "Automatic" })
+
+local autoHarvest = false
+
+MainTab:Toggle({
+    Title = "Auto Harvest",
+    Desc = "Auto Harvest",
+    Value = false,
+    Callback = function(state)
+        autoHarvest = state
+        if state then
+            task.spawn(function()
+                while autoHarvest do
+                    for _, v in ipairs(workspace:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") and v.Name == "HarvestPrompt" then
+                            fireproximityprompt(v)
+                        end
+                    end
+                    task.wait(0.4)
+                end
+            end)
+        end
+    end
+})
+
 local autoSell = false
 
 local posA = CFrame.new(
@@ -46,23 +71,24 @@ local posB = CFrame.new(
 )
 
 MainTab:Toggle({
-    Title = "Auto Sell",
-    Desc = "Auto sell AILL",
+    Title = "Auto Sell (Teleport)",
+    Desc = "Auto sell + teleport switch",
     Value = false,
     Callback = function(state)
         autoSell = state
 
         if state then
             task.spawn(function()
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
                 local togglePos = false
 
                 while autoSell do
-                    local char = player.Character or player.CharacterAdded:Wait()
-                    local hrp = char:WaitForChild("HumanoidRootPart")
-
+                    -- สลับตำแหน่ง
                     togglePos = not togglePos
                     hrp.CFrame = togglePos and posA or posB
 
+                    -- SellAll
                     game:GetService("ReplicatedStorage")
                         :WaitForChild("RemoteEvents")
                         :WaitForChild("SellItems")
@@ -127,7 +153,6 @@ MainTab:Toggle({
     Value = false,
     Callback = function(state)
         autoBuy = state
-
         if state then
             task.spawn(function()
                 while autoBuy do
