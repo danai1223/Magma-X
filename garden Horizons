@@ -16,6 +16,8 @@ local Window = WindUI:CreateWindow({
     SideBarWidth = 200,
     HideSearchBar = true,
     ScrollBarEnabled = false
+    Background = "rbxassetid://117199031447036", -- 👈 รูปนี้
+    BackgroundImageTransparency = 0.7,
 })
 
 Window:Tag({
@@ -26,26 +28,47 @@ Window:Tag({
 
 local MainTab = Window:Tab({ Title = "Main", Icon = "" })
 
--- ===== Automatic =====
-MainTab:Section({ Title = "Automatic" })
+local autoSell = false
 
-local autoHarvest = false
+local posA = CFrame.new(
+    149.3974, 204.011993, 671.999878,
+    -1, 0, 0,
+    0, 1, 0,
+    0, 0, -1
+)
+
+local posB = CFrame.new(
+    164.290833, 188.511993, 348.025513,
+    0.999913931, 0, -0.0131206634,
+    0, 1, 0,
+    0.0131206634, 0, 0.999913931
+)
 
 MainTab:Toggle({
-    Title = "Auto Harvest",
-    Desc = "Auto Harvest",
+    Title = "Auto Sell",
+    Desc = "Auto sell All",
     Value = false,
     Callback = function(state)
-        autoHarvest = state
+        autoSell = state
+
         if state then
             task.spawn(function()
-                while autoHarvest do
-                    for _, v in ipairs(workspace:GetDescendants()) do
-                        if v:IsA("ProximityPrompt") and v.Name == "HarvestPrompt" then
-                            fireproximityprompt(v)
-                        end
-                    end
-                    task.wait(0.4)
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
+                local togglePos = false
+
+                while autoSell do
+                    -- สลับตำแหน่ง
+                    togglePos = not togglePos
+                    hrp.CFrame = togglePos and posA or posB
+
+                    -- SellAll
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("RemoteEvents")
+                        :WaitForChild("SellItems")
+                        :InvokeServer("SellAll")
+
+                    task.wait(2)
                 end
             end)
         end
