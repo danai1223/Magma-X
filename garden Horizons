@@ -15,8 +15,8 @@ local Window = WindUI:CreateWindow({
     Resizable = true,
     SideBarWidth = 200,
     HideSearchBar = true,
-    ScrollBarEnabled = false
-    Background = "rbxassetid://117199031447036", -- 👈 รูปนี้
+    ScrollBarEnabled = false,
+    Background = "rbxassetid://117199031447036",
     BackgroundImageTransparency = 0.7,
 })
 
@@ -28,6 +28,7 @@ Window:Tag({
 
 local MainTab = Window:Tab({ Title = "Main", Icon = "" })
 
+-- ===== Auto Sell + Teleport =====
 local autoSell = false
 
 local posA = CFrame.new(
@@ -46,51 +47,28 @@ local posB = CFrame.new(
 
 MainTab:Toggle({
     Title = "Auto Sell",
-    Desc = "Auto sell All",
+    Desc = "Auto sell AILL",
     Value = false,
     Callback = function(state)
         autoSell = state
 
         if state then
             task.spawn(function()
-                local char = player.Character or player.CharacterAdded:Wait()
-                local hrp = char:WaitForChild("HumanoidRootPart")
                 local togglePos = false
 
                 while autoSell do
-                    -- สลับตำแหน่ง
+                    local char = player.Character or player.CharacterAdded:Wait()
+                    local hrp = char:WaitForChild("HumanoidRootPart")
+
                     togglePos = not togglePos
                     hrp.CFrame = togglePos and posA or posB
 
-                    -- SellAll
                     game:GetService("ReplicatedStorage")
                         :WaitForChild("RemoteEvents")
                         :WaitForChild("SellItems")
                         :InvokeServer("SellAll")
 
                     task.wait(2)
-                end
-            end)
-        end
-    end
-})
-
-local autoSell = false
-
-MainTab:Toggle({
-    Title = "Auto Sell All",
-    Desc = "Automatically sell all items",
-    Value = false,
-    Callback = function(state)
-        autoSell = state
-        if state then
-            task.spawn(function()
-                while autoSell do
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("RemoteEvents")
-                        :WaitForChild("SellItems")
-                        :InvokeServer("SellAll")
-                    task.wait(1)
                 end
             end)
         end
@@ -149,6 +127,7 @@ MainTab:Toggle({
     Value = false,
     Callback = function(state)
         autoBuy = state
+
         if state then
             task.spawn(function()
                 while autoBuy do
