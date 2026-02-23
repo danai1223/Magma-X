@@ -4,9 +4,9 @@ if placeId == 70876832253163 then
     
     loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Magma-X/refs/heads/main/Deah%20reail"))()
 
-elseif placeId == 987654321 then
+elseif placeId == 130594398886540 then
     
-    loadstring(game:HttpGet("https://example.com/scriptB.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Magma-X/refs/heads/main/garden%20Horizons"))()
 
 else
     warn("PlaceId นี้ยังไม่รองรับ:", placeId)
