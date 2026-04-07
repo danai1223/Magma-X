@@ -1,4 +1,3 @@
---[[สคริปมีคนจ้างส่องหาแม่ไอ่กาก]]
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Window = WindUI:CreateWindow({
