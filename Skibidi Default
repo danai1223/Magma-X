@@ -44,198 +44,109 @@ local FarmTab = Window:Tab({
     Locked = false,
 })
 
-local PlaceTab = Window:Tab({
-    Title = "⚔️ ระบบวางยูนิต",
-    Icon = "",
-    Locked = false,
-})
+local Rep = game:GetService("ReplicatedStorage")
 
--- วาง Upgraded Silver
 local AutoSilver = false
+local AutoSpeaker = false
+local AutoUTCP = false
+local AutoUpgrade = false
+local AutoStart = false
+local AutoSkip = false
+local AutoReplay = false
+local SpeedX5 = false
 
 PlaceTab:Toggle({
     Title = "🔫 วาง Upgraded Silver อัตโนมัติ",
     Default = false,
-    Callback = function(state)
-        AutoSilver = state
-
-        if state then
-            task.spawn(function()
-                while AutoSilver do
-                    local args = {
-                        "UpgSilver",
-                        CFrame.new(440.5727844238281, 96.48703002929688, 502.2198181152344),
-                        false
-                    }
-
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("Event")
-                        :WaitForChild("placeTower")
-                        :FireServer(unpack(args))
-
-                    task.wait(1)
-                end
-            end)
-        end
-    end
+    Callback = function(state) AutoSilver = state end
 })
-
--- วาง Ultimate Speakerguy
-local AutoSpeaker = false
 
 PlaceTab:Toggle({
     Title = "🔊 วาง Ultimate Speakerguy อัตโนมัติ",
     Default = false,
-    Callback = function(state)
-        AutoSpeaker = state
-
-        if state then
-            task.spawn(function()
-                while AutoSpeaker do
-                    local args = {
-                        "UltimateSpeakerguy",
-                        CFrame.new(441.0165100097656, 96.48699951171875, 484.77752685546875),
-                        false
-                    }
-
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("Event")
-                        :WaitForChild("placeTower")
-                        :FireServer(unpack(args))
-
-                    task.wait(1)
-                end
-            end)
-        end
-    end
+    Callback = function(state) AutoSpeaker = state end
 })
-
--- วาง Colossal Camera (UTCP)
-local AutoUTCP = false
 
 PlaceTab:Toggle({
     Title = "📷 วาง Colossal Camera อัตโนมัติ",
     Default = false,
-    Callback = function(state)
-        AutoUTCP = state
-
-        if state then
-            task.spawn(function()
-                while AutoUTCP do
-                    local args = {
-                        "UTCP",
-                        CFrame.new(460.7336120605469, 96.08462524414062, 482.9497375488281),
-                        false
-                    }
-
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("Event")
-                        :WaitForChild("placeTower")
-                        :FireServer(unpack(args))
-
-                    task.wait(1)
-                end
-            end)
-        end
-    end
+    Callback = function(state) AutoUTCP = state end
 })
 
-local AutoStart = false
+PlaceTab:Toggle({
+    Title = "⏫ อัพเกรดยูนิตทั้งหมด",
+    Default = false,
+    Callback = function(state) AutoUpgrade = state end
+})
 
 FarmTab:Toggle({
     Title = "🚀 เริ่มเกมอัตโนมัติ",
     Default = false,
-    Callback = function(state)
-        AutoStart = state
-
-        if state then
-            task.spawn(function()
-                while AutoStart do
-                    local args = { true }
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("GAME_START")
-                        :WaitForChild("readyButton")
-                        :FireServer(unpack(args))
-                    task.wait(1)
-                end
-            end)
-        end
-    end
+    Callback = function(state) AutoStart = state end
 })
-
-local AutoSkip = false
 
 FarmTab:Toggle({
     Title = "⏭️ ข้าม Wave อัตโนมัติ",
     Default = false,
-    Callback = function(state)
-        AutoSkip = state
-
-        if state then
-            task.spawn(function()
-                while AutoSkip do
-                    local args = { true }
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("Event")
-                        :WaitForChild("waveSkip")
-                        :FireServer(unpack(args))
-                    task.wait(1)
-                end
-            end)
-        end
-    end
+    Callback = function(state) AutoSkip = state end
 })
-
-local AutoReplay = false
 
 FarmTab:Toggle({
     Title = "🔁 เล่นใหม่อัตโนมัติ",
     Default = false,
-    Callback = function(state)
-        AutoReplay = state
-
-        if state then
-            task.spawn(function()
-                while AutoReplay do
-                    local gui = player.PlayerGui:FindFirstChild("GameEnded")
-                    if gui then
-                        local frame = gui:FindFirstChild("Frame")
-                        if frame then
-                            local btn = frame:FindFirstChild("replay")
-                            if btn then
-                                btn:Activate()
-                            end
-                        end
-                    end
-                    task.wait(1)
-                end
-            end)
-        end
-    end
+    Callback = function(state) AutoReplay = state end
 })
-
-local SpeedX5 = false
 
 FarmTab:Toggle({
     Title = "⚡ เร่งความเร็ว Wave x5",
     Default = false,
-    Callback = function(state)
-        SpeedX5 = state
-
-        if state then
-            task.spawn(function()
-                while SpeedX5 do
-                    local args = { 5 }
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("Game")
-                        :WaitForChild("Speed")
-                        :WaitForChild("Change")
-                        :FireServer(unpack(args))
-                    task.wait(2)
-                end
-            end)
-        end
-    end
+    Callback = function(state) SpeedX5 = state end
 })
+
+task.spawn(function()
+    while true do
+        
+        if AutoSilver then
+            Rep.Event.placeTower:FireServer("UpgSilver", CFrame.new(440.57,96.48,502.21), false)
+        end
+
+        if AutoSpeaker then
+            Rep.Event.placeTower:FireServer("UltimateSpeakerguy", CFrame.new(441.01,96.48,484.77), false)
+        end
+
+        if AutoUTCP then
+            Rep.Event.placeTower:FireServer("UTCP", CFrame.new(460.73,96.08,482.94), false)
+        end
+
+        if AutoUpgrade then
+            for i = 1,3 do
+                Rep.Event.UpgradeTower:FireServer(tostring(i))
+                task.wait(0.2)
+            end
+        end
+
+        if AutoStart then
+            Rep.GAME_START.readyButton:FireServer(true)
+        end
+
+        if AutoSkip then
+            Rep.Event.waveSkip:FireServer(true)
+        end
+
+        if SpeedX5 then
+            Rep.Game.Speed.Change:FireServer(5)
+        end
+
+        if AutoReplay then
+            local player = game.Players.LocalPlayer
+            local gui = player.PlayerGui:FindFirstChild("GameEnded")
+            if gui and gui:FindFirstChild("Frame") and gui.Frame:FindFirstChild("replay") then
+                gui.Frame.replay:Activate()
+            end
+        end
+
+        task.wait(1)
+    end
+end)
 
 Window.Icon:Enable()
