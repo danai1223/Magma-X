@@ -1,4 +1,5 @@
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+--กูรู้ทันต้องมีคนมาส่องมันมึงเอาไปเลยสคริปกากๆ
+locall WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Window = WindUI:CreateWindow({
     Title = "Zaza Hub",
