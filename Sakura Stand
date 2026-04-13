@@ -1,0 +1,97 @@
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "Vacon Hub",
+    Icon = "door-open",
+    Author = "by Vacon Hub",
+    Folder = "Virusscript",
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    Background = "rbxassetid://117199031447036",
+    BackgroundImageTransparency = 0.7,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+    User = {
+        Enabled = true,
+        Anonymous = false,
+        Callback = function()
+            print("Icon User")
+        end,
+    }
+})
+
+Window:Tag({
+    Title = "จ่ายตีงกูด้วยสาส(งั้นโดนแบน)",
+    Icon = "",
+    Color = Color3.fromHex("#30ff6a"),
+    Radius = 8,
+})
+
+local PlaceTab = Window:Tab({
+    Title = "FARMING",
+    Icon = "",
+    Locked = false,
+})
+
+local farming = false
+
+PlaceTab:Toggle({
+    Title = "Farming Box",
+    Default = false,
+    Callback = function(state)
+        farming = state
+
+        if farming then
+            task.spawn(function()
+                local player = game.Players.LocalPlayer
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
+
+                local itemsFolder = workspace:WaitForChild("Item")
+
+                local targets = {
+                    Barrel = true,
+                    Box = true
+                }
+
+                local function getPrompt(obj)
+                    for _, v in ipairs(obj:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") and v.Enabled then
+                            return v
+                        end
+                    end
+                end
+
+                while farming do
+                    for _, v in ipairs(itemsFolder:GetChildren()) do
+                        if not farming then break end
+
+                        if targets[v.Name] and v:IsA("BasePart") then
+                            
+                            hrp.CFrame = v.CFrame + Vector3.new(0, 3, 0)
+
+                            local prompt = getPrompt(v)
+                            if prompt then
+                                for i = 1, 3 do
+                                    fireproximityprompt(prompt)
+                                    task.wait(0.15)
+                                end
+                            end
+
+                            task.wait(0.2)
+                        end
+                    end
+
+                    task.wait(0.3)
+                end
+            end)
+        end
+    end
+})
+
+Window.Icon:Enable()
