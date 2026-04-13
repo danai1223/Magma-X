@@ -1,13 +1,13 @@
 local placeId = game.PlaceId
 
-if placeId == 70876832253163 then
+if placeId == 8534845015 then
     
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Magma-X/refs/heads/main/Deah%20reail"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Magma-X/refs/heads/main/Sakura%20Stand"))()
 
 elseif placeId == 130594398886540 then
     
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Magma-X/refs/heads/main/garden%20Horizons"))()
+    loadstring(game:HttpGet(""))()
 
 else
-    warn("PlaceId นี้ยังไม่รองรับ:", placeId)
+    warn("แมพเชี่ยนี้ไม่รองรับ:", placeId)
 end
