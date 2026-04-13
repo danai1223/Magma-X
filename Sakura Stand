@@ -4,7 +4,6 @@ local Window = WindUI:CreateWindow({
     Title = "Vacon Hub",
     Icon = "door-open",
     Author = "by Vacon Hub",
-    Folder = "Virusscript",
     Size = UDim2.fromOffset(580, 460),
     MinSize = Vector2.new(560, 350),
     MaxSize = Vector2.new(850, 560),
@@ -16,32 +15,36 @@ local Window = WindUI:CreateWindow({
     BackgroundImageTransparency = 0.7,
     HideSearchBar = true,
     ScrollBarEnabled = false,
-    User = {
-        Enabled = true,
-        Anonymous = false,
-        Callback = function()
-            print("Icon User")
-        end,
-    }
-})
-
-Window:Tag({
-    Title = "จ่ายตีงกูด้วยสาส(งั้นโดนแบน)",
-    Icon = "",
-    Color = Color3.fromHex("#30ff6a"),
-    Radius = 8,
 })
 
 local PlaceTab = Window:Tab({
-    Title = "FARMING",
+    Title = "OP Farming",
     Icon = "",
-    Locked = false,
 })
 
 local farming = false
 
+local selectedTargets = {
+    Chest = true,
+    Barrel = true,
+    Box = true
+}
+
+PlaceTab:Dropdown({
+    Title = "Select Item",
+    Values = {"Chest", "Barrel", "Box"},
+    Multi = true,
+    Default = {"Chest", "Barrel", "Box"},
+    Callback = function(values)
+        selectedTargets = {}
+        for _, v in pairs(values) do
+            selectedTargets[v] = true
+        end
+    end
+})
+
 PlaceTab:Toggle({
-    Title = "Farming Box",
+    Title = "Enabled",
     Default = false,
     Callback = function(state)
         farming = state
@@ -53,11 +56,6 @@ PlaceTab:Toggle({
                 local hrp = char:WaitForChild("HumanoidRootPart")
 
                 local itemsFolder = workspace:WaitForChild("Item")
-
-                local targets = {
-                    Barrel = true,
-                    Box = true
-                }
 
                 local function getPrompt(obj)
                     for _, v in ipairs(obj:GetDescendants()) do
@@ -71,8 +69,7 @@ PlaceTab:Toggle({
                     for _, v in ipairs(itemsFolder:GetChildren()) do
                         if not farming then break end
 
-                        if targets[v.Name] and v:IsA("BasePart") then
-                            
+                        if selectedTargets[v.Name] and v:IsA("BasePart") then
                             hrp.CFrame = v.CFrame + Vector3.new(0, 3, 0)
 
                             local prompt = getPrompt(v)
@@ -86,7 +83,6 @@ PlaceTab:Toggle({
                             task.wait(0.2)
                         end
                     end
-
                     task.wait(0.3)
                 end
             end)
