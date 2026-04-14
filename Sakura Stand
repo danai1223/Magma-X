@@ -77,6 +77,7 @@ player.Idled:Connect(function()
 end)
 
 local farming = false
+local selectedMode = "Up"
 
 local selectedTargets = {}
 for _,v in pairs(Config.SelectedTargets) do
@@ -86,6 +87,16 @@ end
 local FarmingSection = PlaceTab:Section({
     Title = "Level Farming",
     Desc = ""
+})
+
+FarmingSection:Dropdown({
+    Title = "Select Mode",
+    Values = {"Up","Down"},
+    Multi = false,
+    Default = "Up",
+    Callback = function(value)
+        selectedMode = value
+    end
 })
 
 FarmingSection:Dropdown({
@@ -102,6 +113,13 @@ FarmingSection:Dropdown({
         SaveConfig()
     end
 })
+
+local function applyMode(hrp)
+    if selectedMode == "Down" then
+        hrp.CFrame = hrp.CFrame * CFrame.new(0,-4,0) * CFrame.Angles(math.rad(90),0,0)
+        hrp.Velocity = Vector3.zero
+    end
+end
 
 FarmingSection:Toggle({
     Title = "Auto Level v1 (Fast)",
@@ -139,13 +157,22 @@ FarmingSection:Toggle({
                     for _, v in ipairs(itemsFolder:GetChildren()) do
                         if not farming then break end
                         if v:IsA("BasePart") and isTarget(v.Name) then
-                            hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            
+                            if selectedMode == "Up" then
+                                hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            else
+                                hrp.CFrame = v.CFrame + Vector3.new(0,-4,0)
+                                applyMode(hrp)
+                            end
+
                             task.wait(0.07)
+
                             local prompt = getPrompt(v)
                             if prompt then
                                 fireproximityprompt(prompt)
                                 fireproximityprompt(prompt)
                             end
+
                             task.wait()
                         end
                     end
@@ -199,13 +226,22 @@ FarmingSection:Toggle({
                     for _, v in ipairs(itemsFolder:GetChildren()) do
                         if not farming then break end
                         if v:IsA("BasePart") and isTarget(v.Name) then
-                            hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            
+                            if selectedMode == "Up" then
+                                hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            else
+                                hrp.CFrame = v.CFrame + Vector3.new(0,-4,0)
+                                applyMode(hrp)
+                            end
+
                             task.wait(0.07)
+
                             local prompt = getPrompt(v)
                             if prompt then
                                 fireproximityprompt(prompt)
                                 fireproximityprompt(prompt)
                             end
+
                             task.wait()
                         end
                     end
