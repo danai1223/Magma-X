@@ -1,1 +1,8 @@
+local placeId = game.PlaceId
+print("PlaceId:", placeId)
 
+if placeId == 8534845015 then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/danai1223/Vacon/refs/heads/main/obf_8oDTAfqc74NHvlu3SSo3iv11J54Y25n12LuNEA7P65v4xs16Xls7153Yu8x0wn28.lua%20(1).txt"))()
+else
+    warn("แมพนี้ไม่รองรับ:", placeId)
+end
