@@ -4,22 +4,27 @@ local Window = WindUI:CreateWindow({
     Title = "Vacon Hub",
     Icon = "door-open",
     Author = "by Vacon Hub",
-    Size = UDim2.fromOffset(580, 460),
+    Size = UDim2.fromOffset(650, 500),
     MinSize = Vector2.new(560, 350),
     MaxSize = Vector2.new(850, 560),
     Transparent = true,
     Theme = "Dark",
     Resizable = true,
-    SideBarWidth = 200,
-    Background = "rbxassetid://117199031447036",
+    SideBarWidth = 180,
+    Background = "rbxassetid://92362056079936",
     BackgroundImageTransparency = 0.7,
     HideSearchBar = true,
-    ScrollBarEnabled = false,
+    ScrollBarEnabled = true
 })
 
 local PlaceTab = Window:Tab({
     Title = "OP Farming",
     Icon = "",
+})
+
+local FarmingSection = PlaceTab:Section({
+    Title = "Level Farming",
+    Desc = ""
 })
 
 local farming = false
@@ -30,7 +35,7 @@ local selectedTargets = {
     Box = true
 }
 
-PlaceTab:Dropdown({
+FarmingSection:Dropdown({
     Title = "Select Item",
     Values = {"Chest", "Barrel", "Box"},
     Multi = true,
@@ -43,7 +48,7 @@ PlaceTab:Dropdown({
     end
 })
 
-PlaceTab:Toggle({
+FarmingSection:Toggle({
     Title = "Enabled",
     Default = false,
     Callback = function(state)
@@ -84,6 +89,145 @@ PlaceTab:Toggle({
                         end
                     end
                     task.wait(0.3)
+                end
+            end)
+        end
+    end
+})
+
+local MasterySection = PlaceTab:Section({
+    Title = "Mastery",
+    Desc = ""
+})
+
+local upgradeRunning = false
+
+MasterySection:Toggle({
+    Title = "UpgradeMastery",
+    Default = false,
+    Callback = function(state)
+        upgradeRunning = state
+
+        if state then
+            task.spawn(function()
+                while upgradeRunning do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("GlobalUsedRemotes")
+                        :WaitForChild("UpgradeMas")
+                        :FireServer()
+
+                    task.wait(5)
+                end
+            end)
+        end
+    end
+})
+
+local breakthroughRunning = false
+
+MasterySection:Toggle({
+    Title = "Breakthrough",
+    Default = false,
+    Callback = function(state)
+        breakthroughRunning = state
+
+        if state then
+            task.spawn(function()
+                while breakthroughRunning do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("GlobalUsedRemotes")
+                        :WaitForChild("Breakthrough")
+                        :FireServer()
+
+                    task.wait(5)
+                end
+            end)
+        end
+    end
+})
+
+local SellSection = PlaceTab:Section({
+    Title = "Sell",
+    Desc = ""
+})
+
+local sellRunning = false
+
+local selectedSellItems = {
+    ["Arrow"] = true,
+    ["Mysterious Camera"] = true,
+    ["Hamon Manual"] = true,
+    ["Rokakaka"] = true,
+    ["Stop Sign"] = true,
+    ["Stone Mask"] = true,
+    ["Haunted Sword"] = true,
+    ["Spin Manual"] = true,
+    ["Barrel"] = true,
+    ["Bomu Bomu Devil Fruit"] = true,
+    ["Mochi Mochi Devil Fruit"] = true,
+    ["Bari Bari Devil Fruit"] = true
+}
+
+SellSection:Dropdown({
+    Title = "Select Sell Items",
+    Values = {
+        "Arrow",
+        "Mysterious Camera",
+        "Hamon Manual",
+        "Rokakaka",
+        "Stop Sign",
+        "Stone Mask",
+        "Haunted Sword",
+        "Spin Manual",
+        "Barrel",
+        "Bomu Bomu Devil Fruit",
+        "Mochi Mochi Devil Fruit",
+        "Bari Bari Devil Fruit"
+    },
+    Multi = true,
+    Default = {
+        "Arrow",
+        "Mysterious Camera",
+        "Hamon Manual",
+        "Rokakaka",
+        "Stop Sign",
+        "Stone Mask",
+        "Haunted Sword",
+        "Spin Manual",
+        "Barrel",
+        "Bomu Bomu Devil Fruit",
+        "Mochi Mochi Devil Fruit",
+        "Bari Bari Devil Fruit"
+    },
+    Callback = function(values)
+        selectedSellItems = {}
+        for _, v in pairs(values) do
+            selectedSellItems[v] = true
+        end
+    end
+})
+
+SellSection:Toggle({
+    Title = "Enabled",
+    Default = false,
+    Callback = function(state)
+        sellRunning = state
+
+        if state then
+            task.spawn(function()
+                local remote = game:GetService("ReplicatedStorage")
+                    :WaitForChild("GlobalUsedRemotes")
+                    :WaitForChild("SellItem")
+
+                while sellRunning do
+                    for itemName, _ in pairs(selectedSellItems) do
+                        if not sellRunning then break end
+
+                        remote:FireServer(itemName)
+                        task.wait(1)
+                    end
+
+                    task.wait(1)
                 end
             end)
         end
