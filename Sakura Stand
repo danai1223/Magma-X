@@ -6,31 +6,48 @@ end
 
 local HttpService = game:GetService("HttpService")
 
-local ConfigFile = "VaconHub_Config.json"
-
-local Config = {
-    AutoExecute = true,
-    AutoSave = true,
-
-    Farming = false,
-    FarmingV2 = false,
-    SelectedTargets = {"Chest","Barrel","Box"},
-    SellItems = {},
-    SkillKeys = {}
-}
-
-if isfile and isfile(ConfigFile) then
-    Config = HttpService:JSONDecode(readfile(ConfigFile))
+local folderName = "Vacon Hub"
+if not isfolder(folderName) then
+    makefolder(folderName)
 end
 
-local function SaveConfig()
-    if Config.AutoSave and writefile then
-        writefile(ConfigFile, HttpService:JSONEncode(Config))
+Config = Config or {
+    Farming = false,
+    FarmingV2 = false,
+    AutoExecute = false,
+    AutoSave = false,
+    SelectedTargets = {"Chest","Barrel","Box"}
+}
+
+local function getConfigList()
+    local files = {}
+    for _,file in pairs(listfiles(folderName)) do
+        if file:match(".json") then
+            local name = file:match("([^/\\]+)%.json$")
+            table.insert(files, name)
+        end
+    end
+    return files
+end
+
+local function saveConfigFile(name)
+    writefile(folderName.."/"..name..".json", HttpService:JSONEncode(Config))
+end
+
+local function loadConfigFile(name)
+    local path = folderName.."/"..name..".json"
+    if isfile(path) then
+        local data = HttpService:JSONDecode(readfile(path))
+        for k,v in pairs(data) do
+            Config[k] = v
+        end
     end
 end
 
-if Config.AutoExecute then
-    SaveConfig()
+function SaveConfig()
+    if Config.AutoSave and Config.CurrentConfig then
+        saveConfigFile(Config.CurrentConfig)
+    end
 end
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -62,13 +79,36 @@ local Window = WindUI:CreateWindow({
     }
 })
 
-local PlaceTab = Window:Tab({Title = "Farming",Icon = "code-xml"})
-local AttackTab = Window:Tab({Title = "Attack",Icon = "swords"})
-local EspTab = Window:Tab({Title = "Vision",Icon = "eye"})
-local SettingTab = Window:Tab({Title = "Settings",Icon = "settings"})
+local PlaceTab = Window:Tab({
+    Title = "Farming",
+    Icon = "code-xml",
+})
+
+local SkillTab = Window:Tab({
+    Title = "Skill, Attack",
+    Icon = "swords",
+})
+
+local EspTab = Window:Tab({
+    Title = "Vision",
+    Icon = "eye",
+})
+
+Tab:Select() -- Select Tab
+
+local SettingTab = Window:Tab({
+    Title = "Settings",
+    Icon = "settings",
+})
+
+local FarmingSection = PlaceTab:Section({
+    Title = "Level Farming",
+    Desc = ""
+})
 
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
+
 local player = Players.LocalPlayer
 
 player.Idled:Connect(function()
@@ -77,62 +117,38 @@ player.Idled:Connect(function()
 end)
 
 local farming = false
-local selectedMode = "Up"
 
-local selectedTargets = {}
-for _,v in pairs(Config.SelectedTargets) do
-    selectedTargets[v] = true
-end
-
-local FarmingSection = PlaceTab:Section({
-    Title = "Level Farming",
-    Desc = ""
-})
-
-FarmingSection:Dropdown({
-    Title = "Select Mode",
-    Values = {"Up","Down"},
-    Multi = false,
-    Default = "Up",
-    Callback = function(value)
-        selectedMode = value
-    end
-})
+local selectedTargets = {
+    Chest = true,
+    Barrel = true,
+    Box = true
+}
 
 FarmingSection:Dropdown({
     Title = "Select Item",
-    Values = {"Chest","Barrel","Box"},
+    Values = {"Chest", "Barrel", "Box"},
     Multi = true,
-    Default = Config.SelectedTargets,
+    Default = {"Chest", "Barrel", "Box"},
     Callback = function(values)
         selectedTargets = {}
-        Config.SelectedTargets = values
         for _, v in pairs(values) do
             selectedTargets[v] = true
         end
-        SaveConfig()
     end
 })
 
-local function applyMode(hrp)
-    if selectedMode == "Down" then
-        hrp.CFrame = hrp.CFrame * CFrame.new(0,-4,0) * CFrame.Angles(math.rad(90),0,0)
-        hrp.Velocity = Vector3.zero
-    end
-end
-
 FarmingSection:Toggle({
     Title = "Auto Level v1 (Fast)",
-    Default = Config.Farming,
+    Default = false,
     Callback = function(state)
         farming = state
-        Config.Farming = state
-        SaveConfig()
 
         if farming then
             task.spawn(function()
+                local player = game.Players.LocalPlayer
                 local char = player.Character or player.CharacterAdded:Wait()
                 local hrp = char:WaitForChild("HumanoidRootPart")
+
                 local itemsFolder = workspace:WaitForChild("Item")
 
                 local function getPrompt(obj)
@@ -156,27 +172,30 @@ FarmingSection:Toggle({
                 while farming do
                     for _, v in ipairs(itemsFolder:GetChildren()) do
                         if not farming then break end
+
                         if v:IsA("BasePart") and isTarget(v.Name) then
                             
-                            if selectedMode == "Up" then
-                                hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
-                            else
-                                hrp.CFrame = v.CFrame + Vector3.new(0,-4,0)
-                                applyMode(hrp)
-                            end
+                            
+                            hrp.CFrame = v.CFrame + Vector3.new(0, 2.8, 0)
 
+                            
                             task.wait(0.07)
 
                             local prompt = getPrompt(v)
+
                             if prompt then
+                                -- กดย้ำกันพลาด
                                 fireproximityprompt(prompt)
+                                task.wait(0)
                                 fireproximityprompt(prompt)
                             end
 
-                            task.wait()
+                            -- เดินต่อทันที
+                            task.wait(0.04)
                         end
                     end
-                    task.wait()
+
+                    task.wait(0.05)
                 end
             end)
         end
@@ -185,19 +204,21 @@ FarmingSection:Toggle({
 
 FarmingSection:Toggle({
     Title = "Auto Level v2 (Fast hop server)",
-    Default = Config.FarmingV2,
+    Default = false,
     Callback = function(state)
         farming = state
-        Config.FarmingV2 = state
-        SaveConfig()
 
         if farming then
             task.spawn(function()
+                local player = game.Players.LocalPlayer
                 local TeleportService = game:GetService("TeleportService")
+
                 local char = player.Character or player.CharacterAdded:Wait()
                 local hrp = char:WaitForChild("HumanoidRootPart")
+
                 local itemsFolder = workspace:WaitForChild("Item")
-                local startTime = tick()
+
+                local startTime = tick() -- ⏱️ เริ่มจับเวลา
 
                 local function getPrompt(obj)
                     for _, v in ipairs(obj:GetDescendants()) do
@@ -218,34 +239,34 @@ FarmingSection:Toggle({
                 end
 
                 while farming do
-                    if tick() - startTime >= 30 then
+                    -- ⏰ ครบ 2 นาที = hop
+                    if tick() - startTime >= 60 then
                         TeleportService:Teleport(game.PlaceId, player)
                         break
                     end
 
                     for _, v in ipairs(itemsFolder:GetChildren()) do
                         if not farming then break end
+
                         if v:IsA("BasePart") and isTarget(v.Name) then
                             
-                            if selectedMode == "Up" then
-                                hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
-                            else
-                                hrp.CFrame = v.CFrame + Vector3.new(0,-4,0)
-                                applyMode(hrp)
-                            end
+                            hrp.CFrame = v.CFrame + Vector3.new(0, 2.8, 0)
 
                             task.wait(0.07)
 
                             local prompt = getPrompt(v)
+
                             if prompt then
                                 fireproximityprompt(prompt)
+                                task.wait(0)
                                 fireproximityprompt(prompt)
                             end
 
-                            task.wait()
+                            task.wait(0.04)
                         end
                     end
-                    task.wait()
+
+                    task.wait(0.05)
                 end
             end)
         end
@@ -271,6 +292,29 @@ MasterySection:Toggle({
                     game:GetService("ReplicatedStorage")
                         :WaitForChild("GlobalUsedRemotes")
                         :WaitForChild("UpgradeMas")
+                        :FireServer()
+
+                    task.wait(5)
+                end
+            end)
+        end
+    end
+})
+
+local breakthroughRunning = false
+
+MasterySection:Toggle({
+    Title = "Breakthrough",
+    Default = false,
+    Callback = function(state)
+        breakthroughRunning = state
+
+        if state then
+            task.spawn(function()
+                while breakthroughRunning do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("GlobalUsedRemotes")
+                        :WaitForChild("Breakthrough")
                         :FireServer()
 
                     task.wait(5)
@@ -358,59 +402,107 @@ SellSection:Toggle({
                         if not sellRunning then break end
 
                         remote:FireServer(itemName)
-                        task.wait(0.05)
+                        task.wait(0.5)
                     end
 
-                    task.wait(0.05)
+                    task.wait(0.5)
                 end
             end)
         end
     end
 })
 
-local breakthroughRunning = false
+-- ตัวแปร
+local skillRunning = false
+local selectedKeys = {}
 
-MasterySection:Toggle({
-    Title = "Breakthrough",
+-- Dropdown
+SkillTab:Dropdown({
+    Title = "Select Skill",
+    Values = {"Q","E","R","T","Y","U","G","H","J","X","C","V","B","N","Z"},
+    Multi = true,
+    Default = {},
+    Callback = function(values)
+        selectedKeys = values
+    end
+})
+
+SkillTab:Toggle({
+    Title = "Enabled Skill",
     Default = false,
     Callback = function(state)
-        breakthroughRunning = state
+        skillRunning = state
 
         if state then
             task.spawn(function()
-                while breakthroughRunning do
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("GlobalUsedRemotes")
-                        :WaitForChild("Breakthrough")
-                        :FireServer()
+                local remote = game:GetService("ReplicatedStorage")
+                    :WaitForChild("ABC - First Priority")
+                    :WaitForChild("Utility")
+                    :WaitForChild("Modules")
+                    :WaitForChild("Warp")
+                    :WaitForChild("Index")
+                    :WaitForChild("Event")
+                    :WaitForChild("Reliable")
 
-                    task.wait(5)
+                local index = 1
+
+                while skillRunning do
+                    if #selectedKeys > 0 then
+                        local key = selectedKeys[index]
+
+                        if key then
+                            local args = {
+                                buffer.fromstring("\021"),
+                                buffer.fromstring("\254\001\000\006\001" .. key)
+                            }
+
+                            remote:FireServer(unpack(args))
+                        end
+
+                        index = index + 1
+                        if index > #selectedKeys then
+                            index = 1
+                        end
+                    end
+
+                    task.wait(0.3)
                 end
             end)
         end
     end
 })
 
-local SettingSection = SettingTab:Section({
-    Title = "Settings",
-    Desc = ""
-})
+local autoAttack = false
 
-SettingSection:Toggle({
-    Title = "Auto Executor",
-    Default = Config.AutoExecute,
-    Callback = function(state)
-        Config.AutoExecute = state
-        SaveConfig()
-    end
-})
+local running = false
 
-SettingSection:Toggle({
-    Title = "Auto Save Config",
-    Default = Config.AutoSave,
+SkillTab:Toggle({
+    Title = "Auto Attack",
+    Default = false,
     Callback = function(state)
-        Config.AutoSave = state
-        SaveConfig()
+        running = state
+
+        if state then
+            task.spawn(function()
+                local remote = game:GetService("ReplicatedStorage")
+                    :WaitForChild("ABC - First Priority")
+                    :WaitForChild("Utility")
+                    :WaitForChild("Modules")
+                    :WaitForChild("Warp")
+                    :WaitForChild("Index")
+                    :WaitForChild("Event")
+                    :WaitForChild("Reliable")
+
+                while running do
+                    remote:FireServer(
+                        buffer.fromstring("\021"),
+                        buffer.fromstring("\254\001\000\006\003LMB")
+                    )
+
+                    task.wait(0.1)
+                end
+            end)
+        end
     end
 })
 
@@ -517,9 +609,10 @@ EspSection:Toggle({
                         end
                     end
 
-                    task.wait(0.5)
+                    task.wait(0.5) -- ไม่แลค
                 end
 
+                -- ปิดแล้วลบหมด
                 for obj, _ in pairs(espCache) do
                     removeESP(obj)
                 end
@@ -585,6 +678,7 @@ PlayerEspSection:Toggle({
                     task.wait(1)
                 end
 
+                -- ปิดแล้วลบหมด
                 for plr, _ in pairs(playerEspCache) do
                     removePlayerESP(plr)
                 end
@@ -597,107 +691,68 @@ PlayerEspSection:Toggle({
     end
 })
 
-Window.Icon:Enable()
+local SettingSection = SettingTab:Section({
+    Title = "Settings",
+    Desc = ""
+})
 
-task.delay(1, function()
-    if Config.AutoExecute then
-        
-        if Config.Farming then
-            farming = true
-
-            task.spawn(function()
-                local char = player.Character or player.CharacterAdded:Wait()
-                local hrp = char:WaitForChild("HumanoidRootPart")
-                local itemsFolder = workspace:WaitForChild("Item")
-
-                local function getPrompt(obj)
-                    for _, v in ipairs(obj:GetDescendants()) do
-                        if v:IsA("ProximityPrompt") and v.Enabled then
-                            return v
-                        end
-                    end
-                end
-
-                local function isTarget(name)
-                    local lowerName = string.lower(name)
-                    for target, _ in pairs(selectedTargets) do
-                        if string.find(lowerName, string.lower(target)) then
-                            return true
-                        end
-                    end
-                    return false
-                end
-
-                while farming do
-                    for _, v in ipairs(itemsFolder:GetChildren()) do
-                        if not farming then break end
-                        if v:IsA("BasePart") and isTarget(v.Name) then
-                            hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
-                            task.wait(0.07)
-                            local prompt = getPrompt(v)
-                            if prompt then
-                                fireproximityprompt(prompt)
-                                fireproximityprompt(prompt)
-                            end
-                            task.wait()
-                        end
-                    end
-                    task.wait()
-                end
-            end)
-        end
-
-        if Config.FarmingV2 then
-            farming = true
-
-            task.spawn(function()
-                local TeleportService = game:GetService("TeleportService")
-                local char = player.Character or player.CharacterAdded:Wait()
-                local hrp = char:WaitForChild("HumanoidRootPart")
-                local itemsFolder = workspace:WaitForChild("Item")
-                local startTime = tick()
-
-                local function getPrompt(obj)
-                    for _, v in ipairs(obj:GetDescendants()) do
-                        if v:IsA("ProximityPrompt") and v.Enabled then
-                            return v
-                        end
-                    end
-                end
-
-                local function isTarget(name)
-                    local lowerName = string.lower(name)
-                    for target, _ in pairs(selectedTargets) do
-                        if string.find(lowerName, string.lower(target)) then
-                            return true
-                        end
-                    end
-                    return false
-                end
-
-                while farming do
-                    if tick() - startTime >= 60 then
-                        TeleportService:Teleport(game.PlaceId, player)
-                        break
-                    end
-
-                    for _, v in ipairs(itemsFolder:GetChildren()) do
-                        if not farming then break end
-                        if v:IsA("BasePart") and isTarget(v.Name) then
-                            hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
-                            task.wait(0.07)
-                            local prompt = getPrompt(v)
-                            if prompt then
-                                fireproximityprompt(prompt)
-                                fireproximityprompt(prompt)
-                            end
-                            task.wait()
-                        end
-                    end
-                    task.wait()
-                end
-            end)
-        end
-
+SettingSection:Toggle({
+    Title = "Auto Executor",
+    Default = Config.AutoExecute,
+    Callback = function(state)
+        Config.AutoExecute = state
+        SaveConfig()
     end
-end)
+})
+
+SettingSection:Toggle({
+    Title = "Auto Save Config",
+    Default = Config.AutoSave,
+    Callback = function(state)
+        Config.AutoSave = state
+        SaveConfig()
+    end
+})
+
+local selectedConfig = nil
+local inputName = ""
+
+local configDropdown = SettingSection:Dropdown({
+    Title = "Config List",
+    Values = getConfigList(),
+    Callback = function(v)
+        selectedConfig = v
+        Config.CurrentConfig = v
+    end
+})
+
+SettingSection:Input({
+    Title = "Config Name",
+    Placeholder = "Enter name...",
+    Callback = function(text)
+        inputName = text
+    end
+})
+
+SettingSection:Button({
+    Title = "Create Config",
+    Callback = function()
+        if inputName ~= "" then
+            Config.CurrentConfig = inputName
+            saveConfigFile(inputName)
+            configDropdown:Refresh(getConfigList())
+        end
+    end
+})
+
+SettingSection:Toggle({
+    Title = "Load Config",
+    Default = false,
+    Callback = function(state)
+        if state and selectedConfig then
+            loadConfigFile(selectedConfig)
+        end
+    end
+})
+
+Window.Icon:Enable()
