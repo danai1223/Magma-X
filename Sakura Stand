@@ -18,7 +18,17 @@ local Window = WindUI:CreateWindow({
 })
 
 local PlaceTab = Window:Tab({
-    Title = "OP Farming",
+    Title = "Farming",
+    Icon = "",
+})
+
+local SkillTab = Window:Tab({
+    Title = "Skill, Attack",
+    Icon = "",
+})
+
+local EspTab = Window:Tab({
+    Title = "Vision",
     Icon = "",
 })
 
@@ -56,11 +66,36 @@ FarmingSection:Toggle({
 
         if farming then
             task.spawn(function()
-                local player = game.Players.LocalPlayer
-                local char = player.Character or player.CharacterAdded:Wait()
-                local hrp = char:WaitForChild("HumanoidRootPart")
 
+                local player = game.Players.LocalPlayer
                 local itemsFolder = workspace:WaitForChild("Item")
+
+                -- 🔥 ฟังก์ชันเอาตัวละครใหม่ (กันตายแล้วไม่ทำงาน)
+                local function getChar()
+                    local char = player.Character or player.CharacterAdded:Wait()
+                    local hrp = char:WaitForChild("HumanoidRootPart")
+                    local humanoid = char:WaitForChild("Humanoid")
+                    return char, hrp, humanoid
+                end
+
+                local char, hrp, humanoid = getChar()
+
+                -- 🔥 รีสตาร์ทตอนตาย
+                player.CharacterAdded:Connect(function()
+                    task.wait(1)
+                    char, hrp, humanoid = getChar()
+                end)
+
+                -- 🔥 Noclip
+                game:GetService("RunService").Stepped:Connect(function()
+                    if farming and char then
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end)
 
                 local function getPrompt(obj)
                     for _, v in ipairs(obj:GetDescendants()) do
@@ -71,25 +106,41 @@ FarmingSection:Toggle({
                 end
 
                 while farming do
+                    local found = false
+
                     for _, v in ipairs(itemsFolder:GetChildren()) do
                         if not farming then break end
 
                         if selectedTargets[v.Name] and v:IsA("BasePart") then
-                            hrp.CFrame = v.CFrame + Vector3.new(0, 3, 0)
+                            found = true
+
+                            -- 🔥 วาปแบบนิ่ง
+                            hrp.Velocity = Vector3.zero
+                            hrp.AssemblyLinearVelocity = Vector3.zero
+                            hrp.CFrame = v.CFrame * CFrame.new(0, -5, 0)
+
+                            task.wait(0.08)
 
                             local prompt = getPrompt(v)
                             if prompt then
-                                for i = 1, 3 do
+                                for i = 1, 20 do
                                     fireproximityprompt(prompt)
-                                    task.wait(0.15)
                                 end
                             end
 
-                            task.wait(0.2)
+                            task.wait(0.05)
                         end
                     end
-                    task.wait(0.3)
+
+                    -- ❗ ถ้าไม่มีของ → ไป Void
+                    if not found then
+                        hrp.CFrame = CFrame.new(0, -500, 0) -- ปรับได้
+                        task.wait(0.5)
+                    end
+
+                    task.wait(0.1)
                 end
+
             end)
         end
     end
@@ -230,6 +281,290 @@ SellSection:Toggle({
                     task.wait(1)
                 end
             end)
+        end
+    end
+})
+
+-- ตัวแปร
+local skillRunning = false
+local selectedKeys = {}
+
+-- Dropdown
+SkillTab:Dropdown({
+    Title = "Select Skill",
+    Values = {"Q","E","R","T","Y","U","G","H","J","X","C","V","B","N","Z"},
+    Multi = true,
+    Default = {},
+    Callback = function(values)
+        selectedKeys = values
+    end
+})
+
+SkillTab:Toggle({
+    Title = "Enabled Skill",
+    Default = false,
+    Callback = function(state)
+        skillRunning = state
+
+        if state then
+            task.spawn(function()
+                local remote = game:GetService("ReplicatedStorage")
+                    :WaitForChild("ABC - First Priority")
+                    :WaitForChild("Utility")
+                    :WaitForChild("Modules")
+                    :WaitForChild("Warp")
+                    :WaitForChild("Index")
+                    :WaitForChild("Event")
+                    :WaitForChild("Reliable")
+
+                local index = 1
+
+                while skillRunning do
+                    if #selectedKeys > 0 then
+                        local key = selectedKeys[index]
+
+                        if key then
+                            local args = {
+                                buffer.fromstring("\021"),
+                                buffer.fromstring("\254\001\000\006\001" .. key)
+                            }
+
+                            remote:FireServer(unpack(args))
+                        end
+
+                        index = index + 1
+                        if index > #selectedKeys then
+                            index = 1
+                        end
+                    end
+
+                    task.wait(0.3)
+                end
+            end)
+        end
+    end
+})
+
+local autoAttack = false
+
+local running = false
+
+SkillTab:Toggle({
+    Title = "Auto Attack",
+    Default = false,
+    Callback = function(state)
+        running = state
+
+        if state then
+            task.spawn(function()
+                local remote = game:GetService("ReplicatedStorage")
+                    :WaitForChild("ABC - First Priority")
+                    :WaitForChild("Utility")
+                    :WaitForChild("Modules")
+                    :WaitForChild("Warp")
+                    :WaitForChild("Index")
+                    :WaitForChild("Event")
+                    :WaitForChild("Reliable")
+
+                while running do
+                    remote:FireServer(
+                        buffer.fromstring("\021"),
+                        buffer.fromstring("\254\001\000\006\003LMB")
+                    )
+
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+local EspSection = EspTab:Section({
+    Title = "ESP Item",
+    Desc = ""
+})
+
+local espEnabled = false
+local espTargets = {
+    Chest = true,
+    Barrel = true,
+    Box = true
+}
+
+local espCache = {}
+
+-- Dropdown เลือกของ
+EspSection:Dropdown({
+    Title = "Esp itemBox",
+    Values = {"Chest", "Barrel", "Box"},
+    Multi = true,
+    Default = {"Chest", "Barrel", "Box"},
+    Callback = function(values)
+        espTargets = {}
+        for _, v in pairs(values) do
+            espTargets[v] = true
+        end
+    end
+})
+
+-- ฟังก์ชันสร้าง ESP
+local function createESP(obj)
+    if espCache[obj] then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.fromRGB(0, 170, 255)
+    highlight.OutlineColor = Color3.fromRGB(0, 170, 255)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = obj
+    highlight.Parent = obj
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 100, 0, 40)
+    billboard.AlwaysOnTop = true
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.Parent = obj
+
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.TextColor3 = Color3.fromRGB(0, 170, 255)
+    text.TextStrokeTransparency = 0
+    text.TextScaled = true
+    text.Font = Enum.Font.SourceSansBold
+    text.Parent = billboard
+
+    espCache[obj] = {
+        highlight = highlight,
+        gui = billboard,
+        label = text
+    }
+end
+
+-- ลบ ESP
+local function removeESP(obj)
+    if espCache[obj] then
+        for _, v in pairs(espCache[obj]) do
+            if v then v:Destroy() end
+        end
+        espCache[obj] = nil
+    end
+end
+
+-- Toggle เปิด/ปิด
+EspSection:Toggle({
+    Title = "Enabled Esp",
+    Default = false,
+    Callback = function(state)
+        espEnabled = state
+
+        if state then
+            task.spawn(function()
+                local player = game.Players.LocalPlayer
+
+                while espEnabled do
+                    local char = player.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+                    if hrp then
+                        local itemsFolder = workspace:FindFirstChild("Item")
+
+                        if itemsFolder then
+                            for _, obj in ipairs(itemsFolder:GetChildren()) do
+                                if espTargets[obj.Name] and obj:IsA("BasePart") then
+                                    createESP(obj)
+
+                                    local data = espCache[obj]
+                                    if data and data.label then
+                                        local dist = (hrp.Position - obj.Position).Magnitude
+                                        data.label.Text = obj.Name .. " [" .. math.floor(dist) .. "m]"
+                                    end
+                                else
+                                    removeESP(obj)
+                                end
+                            end
+                        end
+                    end
+
+                    task.wait(0.5) -- ไม่แลค
+                end
+
+                -- ปิดแล้วลบหมด
+                for obj, _ in pairs(espCache) do
+                    removeESP(obj)
+                end
+            end)
+        else
+            for obj, _ in pairs(espCache) do
+                removeESP(obj)
+            end
+        end
+    end
+})
+
+-- ===== ESP PLAYER =====
+local PlayerEspSection = EspTab:Section({
+    Title = "ESP Player",
+    Desc = ""
+})
+
+local playerEspEnabled = false
+local playerEspCache = {}
+
+local function createPlayerESP(plr)
+    if playerEspCache[plr] then return end
+
+    local char = plr.Character
+    if not char then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.fromRGB(0, 255, 0)
+    highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = char
+    highlight.Parent = char
+
+    playerEspCache[plr] = highlight
+end
+
+local function removePlayerESP(plr)
+    if playerEspCache[plr] then
+        playerEspCache[plr]:Destroy()
+        playerEspCache[plr] = nil
+    end
+end
+
+PlayerEspSection:Toggle({
+    Title = "Enabled ESP Player",
+    Default = false,
+    Callback = function(state)
+        playerEspEnabled = state
+
+        if state then
+            task.spawn(function()
+                while playerEspEnabled do
+                    for _, plr in ipairs(game.Players:GetPlayers()) do
+                        if plr ~= game.Players.LocalPlayer then
+                            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                                createPlayerESP(plr)
+                            else
+                                removePlayerESP(plr)
+                            end
+                        end
+                    end
+                    task.wait(1) -- เบาๆ ไม่แลค
+                end
+
+                -- ปิดแล้วลบหมด
+                for plr, _ in pairs(playerEspCache) do
+                    removePlayerESP(plr)
+                end
+            end)
+        else
+            for plr, _ in pairs(playerEspCache) do
+                removePlayerESP(plr)
+            end
         end
     end
 })
