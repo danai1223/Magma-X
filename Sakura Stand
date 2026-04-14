@@ -79,36 +79,13 @@ local Window = WindUI:CreateWindow({
     }
 })
 
-local PlaceTab = Window:Tab({
-    Title = "Farming",
-    Icon = "code-xml",
-})
-
-local SkillTab = Window:Tab({
-    Title = "Skill, Attack",
-    Icon = "swords",
-})
-
-local EspTab = Window:Tab({
-    Title = "Vision",
-    Icon = "eye",
-})
-
-Tab:Select() -- Select Tab
-
-local SettingTab = Window:Tab({
-    Title = "Settings",
-    Icon = "settings",
-})
-
-local FarmingSection = PlaceTab:Section({
-    Title = "Level Farming",
-    Desc = ""
-})
+local PlaceTab = Window:Tab({Title = "Farming",Icon = "code-xml"})
+local AttackTab = Window:Tab({Title = "Attack",Icon = "swords"})
+local EspTab = Window:Tab({Title = "Vision",Icon = "eye"})
+local SettingTab = Window:Tab({Title = "Settings",Icon = "settings"})
 
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
-
 local player = Players.LocalPlayer
 
 player.Idled:Connect(function()
@@ -117,38 +94,101 @@ player.Idled:Connect(function()
 end)
 
 local farming = false
+local selectedMode = "Up"
 
-local selectedTargets = {
-    Chest = true,
-    Barrel = true,
-    Box = true
-}
+local selectedTargets = {}
+for _,v in pairs(Config.SelectedTargets) do
+    selectedTargets[v] = true
+end
+
+local FarmingSection = PlaceTab:Section({
+    Title = "Level Farming",
+    Desc = ""
+})
 
 FarmingSection:Dropdown({
-    Title = "Select Item",
-    Values = {"Chest", "Barrel", "Box"},
-    Multi = true,
-    Default = {"Chest", "Barrel", "Box"},
-    Callback = function(values)
-        selectedTargets = {}
-        for _, v in pairs(values) do
-            selectedTargets[v] = true
-        end
+    Title = "Select Mode",
+    Values = {"Up","Down"},
+    Multi = false,
+    Default = "Up",
+    Callback = function(value)
+        selectedMode = value
     end
 })
 
+FarmingSection:Dropdown({
+    Title = "Select Item",
+    Values = {"Chest","Barrel","Box"},
+    Multi = true,
+    Default = Config.SelectedTargets,
+    Callback = function(values)
+        selectedTargets = {}
+        Config.SelectedTargets = values
+        for _, v in pairs(values) do
+            selectedTargets[v] = true
+        end
+        SaveConfig()
+    end
+})
+
+local noclip = false
+
+local function setNoclip(state)
+    noclip = state
+end
+
+task.spawn(function()
+    while true do
+        if noclip then
+            local char = player.Character
+            if char then
+                for _,v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end
+        task.wait()
+    end
+end)
+
+local function getRandomSpawn()
+    local spawns = {}
+    for _,v in pairs(workspace:GetDescendants()) do
+        if v:IsA("SpawnLocation") then
+            table.insert(spawns, v)
+        end
+    end
+    if #spawns > 0 then
+        return spawns[math.random(1,#spawns)].CFrame + Vector3.new(0,3,0)
+    end
+    return CFrame.new(0,50,0)
+end
+
+local function applyMode(hrp)
+    if selectedMode == "Down" then
+        hrp.CFrame = hrp.CFrame * CFrame.new(0,-4,0) * CFrame.Angles(math.rad(90),0,0)
+        hrp.Velocity = Vector3.zero
+    end
+end
+
 FarmingSection:Toggle({
     Title = "Auto Level v1 (Fast)",
-    Default = false,
+    Default = Config.Farming,
     Callback = function(state)
         farming = state
+        Config.Farming = state
+        SaveConfig()
+
+        if selectedMode == "Down" then
+            setNoclip(state)
+        end
 
         if farming then
             task.spawn(function()
-                local player = game.Players.LocalPlayer
                 local char = player.Character or player.CharacterAdded:Wait()
                 local hrp = char:WaitForChild("HumanoidRootPart")
-
                 local itemsFolder = workspace:WaitForChild("Item")
 
                 local function getPrompt(obj)
@@ -172,30 +212,27 @@ FarmingSection:Toggle({
                 while farming do
                     for _, v in ipairs(itemsFolder:GetChildren()) do
                         if not farming then break end
-
                         if v:IsA("BasePart") and isTarget(v.Name) then
                             
-                            
-                            hrp.CFrame = v.CFrame + Vector3.new(0, 2.8, 0)
+                            if selectedMode == "Up" then
+                                hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            else
+                                hrp.CFrame = v.CFrame + Vector3.new(0,-4,0)
+                                applyMode(hrp)
+                            end
 
-                            
                             task.wait(0.07)
 
                             local prompt = getPrompt(v)
-
                             if prompt then
-                                -- กดย้ำกันพลาด
                                 fireproximityprompt(prompt)
-                                task.wait(0)
                                 fireproximityprompt(prompt)
                             end
 
-                            -- เดินต่อทันที
-                            task.wait(0.04)
+                            task.wait()
                         end
                     end
-
-                    task.wait(0.05)
+                    task.wait()
                 end
             end)
         end
@@ -204,21 +241,23 @@ FarmingSection:Toggle({
 
 FarmingSection:Toggle({
     Title = "Auto Level v2 (Fast hop server)",
-    Default = false,
+    Default = Config.FarmingV2,
     Callback = function(state)
         farming = state
+        Config.FarmingV2 = state
+        SaveConfig()
+
+        if selectedMode == "Down" then
+            setNoclip(state)
+        end
 
         if farming then
             task.spawn(function()
-                local player = game.Players.LocalPlayer
                 local TeleportService = game:GetService("TeleportService")
-
                 local char = player.Character or player.CharacterAdded:Wait()
                 local hrp = char:WaitForChild("HumanoidRootPart")
-
                 local itemsFolder = workspace:WaitForChild("Item")
-
-                local startTime = tick() -- ⏱️ เริ่มจับเวลา
+                local startTime = tick()
 
                 local function getPrompt(obj)
                     for _, v in ipairs(obj:GetDescendants()) do
@@ -239,34 +278,38 @@ FarmingSection:Toggle({
                 end
 
                 while farming do
-                    -- ⏰ ครบ 2 นาที = hop
-                    if tick() - startTime >= 60 then
+                    if tick() - startTime >= 30 then
+                        setNoclip(false)
+                        local spawnCFrame = getRandomSpawn()
+                        hrp.CFrame = spawnCFrame
+                        task.wait(0.5)
                         TeleportService:Teleport(game.PlaceId, player)
                         break
                     end
 
                     for _, v in ipairs(itemsFolder:GetChildren()) do
                         if not farming then break end
-
                         if v:IsA("BasePart") and isTarget(v.Name) then
                             
-                            hrp.CFrame = v.CFrame + Vector3.new(0, 2.8, 0)
+                            if selectedMode == "Up" then
+                                hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            else
+                                hrp.CFrame = v.CFrame + Vector3.new(0,-4,0)
+                                applyMode(hrp)
+                            end
 
                             task.wait(0.07)
 
                             local prompt = getPrompt(v)
-
                             if prompt then
                                 fireproximityprompt(prompt)
-                                task.wait(0)
                                 fireproximityprompt(prompt)
                             end
 
-                            task.wait(0.04)
+                            task.wait()
                         end
                     end
-
-                    task.wait(0.05)
+                    task.wait()
                 end
             end)
         end
