@@ -661,20 +661,6 @@ PlayerEspSection:Toggle({
     end
 })
 
-local SettingSection = SettingTab:Section({
-    Title = "Settings",
-    Desc = ""
-})
-
-SettingSection:Toggle({
-    Title = "Auto Executor",
-    Default = Config.AutoExecute,
-    Callback = function(state)
-        Config.AutoExecute = state
-        SaveConfig()
-    end
-})
-
 SettingSection:Toggle({
     Title = "Auto Save Config",
     Default = Config.AutoSave,
