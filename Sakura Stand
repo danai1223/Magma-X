@@ -344,29 +344,6 @@ MasterySection:Toggle({
     end
 })
 
-local breakthroughRunning = false
-
-MasterySection:Toggle({
-    Title = "Breakthrough",
-    Default = false,
-    Callback = function(state)
-        breakthroughRunning = state
-
-        if state then
-            task.spawn(function()
-                while breakthroughRunning do
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("GlobalUsedRemotes")
-                        :WaitForChild("Breakthrough")
-                        :FireServer()
-
-                    task.wait(5)
-                end
-            end)
-        end
-    end
-})
-
 local SellSection = PlaceTab:Section({
     Title = "Sell",
     Desc = ""
@@ -445,107 +422,59 @@ SellSection:Toggle({
                         if not sellRunning then break end
 
                         remote:FireServer(itemName)
-                        task.wait(0.5)
+                        task.wait(0.05)
                     end
 
-                    task.wait(0.5)
+                    task.wait(0.05)
                 end
             end)
         end
     end
 })
 
--- ตัวแปร
-local skillRunning = false
-local selectedKeys = {}
+local breakthroughRunning = false
 
--- Dropdown
-SkillTab:Dropdown({
-    Title = "Select Skill",
-    Values = {"Q","E","R","T","Y","U","G","H","J","X","C","V","B","N","Z"},
-    Multi = true,
-    Default = {},
-    Callback = function(values)
-        selectedKeys = values
-    end
-})
-
-SkillTab:Toggle({
-    Title = "Enabled Skill",
+MasterySection:Toggle({
+    Title = "Breakthrough",
     Default = false,
     Callback = function(state)
-        skillRunning = state
+        breakthroughRunning = state
 
         if state then
             task.spawn(function()
-                local remote = game:GetService("ReplicatedStorage")
-                    :WaitForChild("ABC - First Priority")
-                    :WaitForChild("Utility")
-                    :WaitForChild("Modules")
-                    :WaitForChild("Warp")
-                    :WaitForChild("Index")
-                    :WaitForChild("Event")
-                    :WaitForChild("Reliable")
+                while breakthroughRunning do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("GlobalUsedRemotes")
+                        :WaitForChild("Breakthrough")
+                        :FireServer()
 
-                local index = 1
-
-                while skillRunning do
-                    if #selectedKeys > 0 then
-                        local key = selectedKeys[index]
-
-                        if key then
-                            local args = {
-                                buffer.fromstring("\021"),
-                                buffer.fromstring("\254\001\000\006\001" .. key)
-                            }
-
-                            remote:FireServer(unpack(args))
-                        end
-
-                        index = index + 1
-                        if index > #selectedKeys then
-                            index = 1
-                        end
-                    end
-
-                    task.wait(0.3)
+                    task.wait(5)
                 end
             end)
         end
     end
 })
 
-local autoAttack = false
+local SettingSection = SettingTab:Section({
+    Title = "Settings",
+    Desc = ""
+})
 
-local running = false
-
-SkillTab:Toggle({
-    Title = "Auto Attack",
-    Default = false,
+SettingSection:Toggle({
+    Title = "Auto Executor",
+    Default = Config.AutoExecute,
     Callback = function(state)
-        running = state
+        Config.AutoExecute = state
+        SaveConfig()
+    end
+})
 
-        if state then
-            task.spawn(function()
-                local remote = game:GetService("ReplicatedStorage")
-                    :WaitForChild("ABC - First Priority")
-                    :WaitForChild("Utility")
-                    :WaitForChild("Modules")
-                    :WaitForChild("Warp")
-                    :WaitForChild("Index")
-                    :WaitForChild("Event")
-                    :WaitForChild("Reliable")
-
-                while running do
-                    remote:FireServer(
-                        buffer.fromstring("\021"),
-                        buffer.fromstring("\254\001\000\006\003LMB")
-                    )
-
-                    task.wait(0.1)
-                end
-            end)
-        end
+SettingSection:Toggle({
+    Title = "Auto Save Config",
+    Default = Config.AutoSave,
+    Callback = function(state)
+        Config.AutoSave = state
+        SaveConfig()
     end
 })
 
@@ -652,10 +581,9 @@ EspSection:Toggle({
                         end
                     end
 
-                    task.wait(0.5) -- ไม่แลค
+                    task.wait(0.5)
                 end
 
-                -- ปิดแล้วลบหมด
                 for obj, _ in pairs(espCache) do
                     removeESP(obj)
                 end
@@ -721,7 +649,6 @@ PlayerEspSection:Toggle({
                     task.wait(1)
                 end
 
-                -- ปิดแล้วลบหมด
                 for plr, _ in pairs(playerEspCache) do
                     removePlayerESP(plr)
                 end
