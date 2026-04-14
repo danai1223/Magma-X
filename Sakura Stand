@@ -1,3 +1,38 @@
+if queue_on_teleport then
+    queue_on_teleport([[
+        loadstring(game:HttpGet("https://pastefy.app/g1mI0yLO/raw"))()
+    ]])
+end
+
+local HttpService = game:GetService("HttpService")
+
+local ConfigFile = "VaconHub_Config.json"
+
+local Config = {
+    AutoExecute = true,
+    AutoSave = true,
+
+    Farming = false,
+    FarmingV2 = false,
+    SelectedTargets = {"Chest","Barrel","Box"},
+    SellItems = {},
+    SkillKeys = {}
+}
+
+if isfile and isfile(ConfigFile) then
+    Config = HttpService:JSONDecode(readfile(ConfigFile))
+end
+
+local function SaveConfig()
+    if Config.AutoSave and writefile then
+        writefile(ConfigFile, HttpService:JSONEncode(Config))
+    end
+end
+
+if Config.AutoExecute then
+    SaveConfig()
+end
+
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Window = WindUI:CreateWindow({
@@ -14,32 +49,26 @@ local Window = WindUI:CreateWindow({
     Background = "rbxassetid://92362056079936",
     BackgroundImageTransparency = 0.7,
     HideSearchBar = true,
-    ScrollBarEnabled = true
+    ScrollBarEnabled = true,
+
+    KeySystem = {
+        Note = "Get Key By Vacon",
+        API = {
+            {
+                Type = "pandadevelopment",
+                ServiceId = "getkeyexamplecomvaconhub123"
+            }
+        }
+    }
 })
 
-local PlaceTab = Window:Tab({
-    Title = "Farming",
-    Icon = "",
-})
-
-local SkillTab = Window:Tab({
-    Title = "Skill, Attack",
-    Icon = "",
-})
-
-local EspTab = Window:Tab({
-    Title = "Vision",
-    Icon = "",
-})
-
-local FarmingSection = PlaceTab:Section({
-    Title = "Level Farming",
-    Desc = ""
-})
+local PlaceTab = Window:Tab({Title = "Farming",Icon = "code-xml"})
+local AttackTab = Window:Tab({Title = "Attack",Icon = "swords"})
+local EspTab = Window:Tab({Title = "Vision",Icon = "eye"})
+local SettingTab = Window:Tab({Title = "Settings",Icon = "settings"})
 
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
-
 local player = Players.LocalPlayer
 
 player.Idled:Connect(function()
@@ -49,63 +78,44 @@ end)
 
 local farming = false
 
-local selectedTargets = {
-    Chest = true,
-    Barrel = true,
-    Box = true
-}
+local selectedTargets = {}
+for _,v in pairs(Config.SelectedTargets) do
+    selectedTargets[v] = true
+end
+
+local FarmingSection = PlaceTab:Section({
+    Title = "Level Farming",
+    Desc = ""
+})
 
 FarmingSection:Dropdown({
     Title = "Select Item",
-    Values = {"Chest", "Barrel", "Box"},
+    Values = {"Chest","Barrel","Box"},
     Multi = true,
-    Default = {"Chest", "Barrel", "Box"},
+    Default = Config.SelectedTargets,
     Callback = function(values)
         selectedTargets = {}
+        Config.SelectedTargets = values
         for _, v in pairs(values) do
             selectedTargets[v] = true
         end
+        SaveConfig()
     end
 })
 
 FarmingSection:Toggle({
-    Title = "Enabled under",
-    Default = false,
+    Title = "Auto Level v1 (Fast)",
+    Default = Config.Farming,
     Callback = function(state)
         farming = state
+        Config.Farming = state
+        SaveConfig()
 
         if farming then
             task.spawn(function()
-
-                local player = game.Players.LocalPlayer
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
                 local itemsFolder = workspace:WaitForChild("Item")
-
-                -- 🔥 ฟังก์ชันเอาตัวละครใหม่ (กันตายแล้วไม่ทำงาน)
-                local function getChar()
-                    local char = player.Character or player.CharacterAdded:Wait()
-                    local hrp = char:WaitForChild("HumanoidRootPart")
-                    local humanoid = char:WaitForChild("Humanoid")
-                    return char, hrp, humanoid
-                end
-
-                local char, hrp, humanoid = getChar()
-
-                -- 🔥 รีสตาร์ทตอนตาย
-                player.CharacterAdded:Connect(function()
-                    task.wait(1)
-                    char, hrp, humanoid = getChar()
-                end)
-
-                -- 🔥 Noclip
-                game:GetService("RunService").Stepped:Connect(function()
-                    if farming and char then
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.CanCollide = false
-                            end
-                        end
-                    end
-                end)
 
                 local function getPrompt(obj)
                     for _, v in ipairs(obj:GetDescendants()) do
@@ -115,93 +125,95 @@ FarmingSection:Toggle({
                     end
                 end
 
-                while farming do
-                    local found = false
-
-                    for _, v in ipairs(itemsFolder:GetChildren()) do
-                        if not farming then break end
-
-                        if selectedTargets[v.Name] and v:IsA("BasePart") then
-                            found = true
-
-                            -- 🔥 วาปแบบนิ่ง
-                            hrp.Velocity = Vector3.zero
-                            hrp.AssemblyLinearVelocity = Vector3.zero
-                            hrp.CFrame = v.CFrame * CFrame.new(0, -5, 0)
-
-                            task.wait(0.08)
-
-                            local prompt = getPrompt(v)
-                            if prompt then
-                                for i = 1, 20 do
-                                    fireproximityprompt(prompt)
-                                end
-                            end
-
-                            task.wait(0.05)
+                local function isTarget(name)
+                    local lowerName = string.lower(name)
+                    for target, _ in pairs(selectedTargets) do
+                        if string.find(lowerName, string.lower(target)) then
+                            return true
                         end
                     end
-
-                    -- ❗ ถ้าไม่มีของ → ไป Void
-                    if not found then
-                        hrp.CFrame = CFrame.new(0, -500, 0) -- ปรับได้
-                        task.wait(0.5)
-                    end
-
-                    task.wait(0.1)
+                    return false
                 end
 
+                while farming do
+                    for _, v in ipairs(itemsFolder:GetChildren()) do
+                        if not farming then break end
+                        if v:IsA("BasePart") and isTarget(v.Name) then
+                            hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            task.wait(0.07)
+                            local prompt = getPrompt(v)
+                            if prompt then
+                                fireproximityprompt(prompt)
+                                fireproximityprompt(prompt)
+                            end
+                            task.wait()
+                        end
+                    end
+                    task.wait()
+                end
             end)
         end
     end
 })
 
 FarmingSection:Toggle({
-Title = "Enabled Up",
-Default = false,
-Callback = function(state)
-farming = state
+    Title = "Auto Level v2 (Fast hop server)",
+    Default = Config.FarmingV2,
+    Callback = function(state)
+        farming = state
+        Config.FarmingV2 = state
+        SaveConfig()
 
-if farming then  
-        task.spawn(function()  
-            local player = game.Players.LocalPlayer  
-            local char = player.Character or player.CharacterAdded:Wait()  
-            local hrp = char:WaitForChild("HumanoidRootPart")  
+        if farming then
+            task.spawn(function()
+                local TeleportService = game:GetService("TeleportService")
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
+                local itemsFolder = workspace:WaitForChild("Item")
+                local startTime = tick()
 
-            local itemsFolder = workspace:WaitForChild("Item")  
+                local function getPrompt(obj)
+                    for _, v in ipairs(obj:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") and v.Enabled then
+                            return v
+                        end
+                    end
+                end
 
-            local function getPrompt(obj)  
-                for _, v in ipairs(obj:GetDescendants()) do  
-                    if v:IsA("ProximityPrompt") and v.Enabled then  
-                        return v  
-                    end  
-                end  
-            end  
+                local function isTarget(name)
+                    local lowerName = string.lower(name)
+                    for target, _ in pairs(selectedTargets) do
+                        if string.find(lowerName, string.lower(target)) then
+                            return true
+                        end
+                    end
+                    return false
+                end
 
-            while farming do  
-                for _, v in ipairs(itemsFolder:GetChildren()) do  
-                    if not farming then break end  
+                while farming do
+                    if tick() - startTime >= 30 then
+                        TeleportService:Teleport(game.PlaceId, player)
+                        break
+                    end
 
-                    if selectedTargets[v.Name] and v:IsA("BasePart") then  
-                        hrp.CFrame = v.CFrame + Vector3.new(0, 3, 0)  
-
-                        local prompt = getPrompt(v)  
-                        if prompt then  
-                            for i = 1, 20 do  
-                                fireproximityprompt(prompt)  
-                                task.wait(0.05)  
-                            end  
-                        end  
-
-                        task.wait(0.1)  
-                    end  
-                end  
-                task.wait(0.1)  
-            end  
-        end)  
-    end  
-end
-
+                    for _, v in ipairs(itemsFolder:GetChildren()) do
+                        if not farming then break end
+                        if v:IsA("BasePart") and isTarget(v.Name) then
+                            hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            task.wait(0.07)
+                            local prompt = getPrompt(v)
+                            if prompt then
+                                fireproximityprompt(prompt)
+                                fireproximityprompt(prompt)
+                            end
+                            task.wait()
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+        end
+    end
 })
 
 local MasterySection = PlaceTab:Section({
@@ -223,29 +235,6 @@ MasterySection:Toggle({
                     game:GetService("ReplicatedStorage")
                         :WaitForChild("GlobalUsedRemotes")
                         :WaitForChild("UpgradeMas")
-                        :FireServer()
-
-                    task.wait(5)
-                end
-            end)
-        end
-    end
-})
-
-local breakthroughRunning = false
-
-MasterySection:Toggle({
-    Title = "Breakthrough",
-    Default = false,
-    Callback = function(state)
-        breakthroughRunning = state
-
-        if state then
-            task.spawn(function()
-                while breakthroughRunning do
-                    game:GetService("ReplicatedStorage")
-                        :WaitForChild("GlobalUsedRemotes")
-                        :WaitForChild("Breakthrough")
                         :FireServer()
 
                     task.wait(5)
@@ -333,107 +322,59 @@ SellSection:Toggle({
                         if not sellRunning then break end
 
                         remote:FireServer(itemName)
-                        task.wait(1)
+                        task.wait(0.05)
                     end
 
-                    task.wait(1)
+                    task.wait(0.05)
                 end
             end)
         end
     end
 })
 
--- ตัวแปร
-local skillRunning = false
-local selectedKeys = {}
+local breakthroughRunning = false
 
--- Dropdown
-SkillTab:Dropdown({
-    Title = "Select Skill",
-    Values = {"Q","E","R","T","Y","U","G","H","J","X","C","V","B","N","Z"},
-    Multi = true,
-    Default = {},
-    Callback = function(values)
-        selectedKeys = values
-    end
-})
-
-SkillTab:Toggle({
-    Title = "Enabled Skill",
+MasterySection:Toggle({
+    Title = "Breakthrough",
     Default = false,
     Callback = function(state)
-        skillRunning = state
+        breakthroughRunning = state
 
         if state then
             task.spawn(function()
-                local remote = game:GetService("ReplicatedStorage")
-                    :WaitForChild("ABC - First Priority")
-                    :WaitForChild("Utility")
-                    :WaitForChild("Modules")
-                    :WaitForChild("Warp")
-                    :WaitForChild("Index")
-                    :WaitForChild("Event")
-                    :WaitForChild("Reliable")
+                while breakthroughRunning do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("GlobalUsedRemotes")
+                        :WaitForChild("Breakthrough")
+                        :FireServer()
 
-                local index = 1
-
-                while skillRunning do
-                    if #selectedKeys > 0 then
-                        local key = selectedKeys[index]
-
-                        if key then
-                            local args = {
-                                buffer.fromstring("\021"),
-                                buffer.fromstring("\254\001\000\006\001" .. key)
-                            }
-
-                            remote:FireServer(unpack(args))
-                        end
-
-                        index = index + 1
-                        if index > #selectedKeys then
-                            index = 1
-                        end
-                    end
-
-                    task.wait(0.3)
+                    task.wait(5)
                 end
             end)
         end
     end
 })
 
-local autoAttack = false
+local SettingSection = SettingTab:Section({
+    Title = "Settings",
+    Desc = ""
+})
 
-local running = false
-
-SkillTab:Toggle({
-    Title = "Auto Attack",
-    Default = false,
+SettingSection:Toggle({
+    Title = "Auto Executor",
+    Default = Config.AutoExecute,
     Callback = function(state)
-        running = state
+        Config.AutoExecute = state
+        SaveConfig()
+    end
+})
 
-        if state then
-            task.spawn(function()
-                local remote = game:GetService("ReplicatedStorage")
-                    :WaitForChild("ABC - First Priority")
-                    :WaitForChild("Utility")
-                    :WaitForChild("Modules")
-                    :WaitForChild("Warp")
-                    :WaitForChild("Index")
-                    :WaitForChild("Event")
-                    :WaitForChild("Reliable")
-
-                while running do
-                    remote:FireServer(
-                        buffer.fromstring("\021"),
-                        buffer.fromstring("\254\001\000\006\003LMB")
-                    )
-
-                    task.wait(0.1)
-                end
-            end)
-        end
+SettingSection:Toggle({
+    Title = "Auto Save Config",
+    Default = Config.AutoSave,
+    Callback = function(state)
+        Config.AutoSave = state
+        SaveConfig()
     end
 })
 
@@ -451,7 +392,6 @@ local espTargets = {
 
 local espCache = {}
 
--- Dropdown เลือกของ
 EspSection:Dropdown({
     Title = "Esp itemBox",
     Values = {"Chest", "Barrel", "Box"},
@@ -465,7 +405,6 @@ EspSection:Dropdown({
     end
 })
 
--- ฟังก์ชันสร้าง ESP
 local function createESP(obj)
     if espCache[obj] then return end
 
@@ -499,7 +438,6 @@ local function createESP(obj)
     }
 end
 
--- ลบ ESP
 local function removeESP(obj)
     if espCache[obj] then
         for _, v in pairs(espCache[obj]) do
@@ -509,7 +447,6 @@ local function removeESP(obj)
     end
 end
 
--- Toggle เปิด/ปิด
 EspSection:Toggle({
     Title = "Enabled Esp",
     Default = false,
@@ -544,10 +481,9 @@ EspSection:Toggle({
                         end
                     end
 
-                    task.wait(0.5) -- ไม่แลค
+                    task.wait(0.5)
                 end
 
-                -- ปิดแล้วลบหมด
                 for obj, _ in pairs(espCache) do
                     removeESP(obj)
                 end
@@ -560,7 +496,6 @@ EspSection:Toggle({
     end
 })
 
--- ===== ESP PLAYER =====
 local PlayerEspSection = EspTab:Section({
     Title = "ESP Player",
     Desc = ""
@@ -611,10 +546,9 @@ PlayerEspSection:Toggle({
                             end
                         end
                     end
-                    task.wait(1) -- เบาๆ ไม่แลค
+                    task.wait(1)
                 end
 
-                -- ปิดแล้วลบหมด
                 for plr, _ in pairs(playerEspCache) do
                     removePlayerESP(plr)
                 end
@@ -628,3 +562,106 @@ PlayerEspSection:Toggle({
 })
 
 Window.Icon:Enable()
+
+task.delay(1, function()
+    if Config.AutoExecute then
+        
+        if Config.Farming then
+            farming = true
+
+            task.spawn(function()
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
+                local itemsFolder = workspace:WaitForChild("Item")
+
+                local function getPrompt(obj)
+                    for _, v in ipairs(obj:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") and v.Enabled then
+                            return v
+                        end
+                    end
+                end
+
+                local function isTarget(name)
+                    local lowerName = string.lower(name)
+                    for target, _ in pairs(selectedTargets) do
+                        if string.find(lowerName, string.lower(target)) then
+                            return true
+                        end
+                    end
+                    return false
+                end
+
+                while farming do
+                    for _, v in ipairs(itemsFolder:GetChildren()) do
+                        if not farming then break end
+                        if v:IsA("BasePart") and isTarget(v.Name) then
+                            hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            task.wait(0.07)
+                            local prompt = getPrompt(v)
+                            if prompt then
+                                fireproximityprompt(prompt)
+                                fireproximityprompt(prompt)
+                            end
+                            task.wait()
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+        end
+
+        if Config.FarmingV2 then
+            farming = true
+
+            task.spawn(function()
+                local TeleportService = game:GetService("TeleportService")
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
+                local itemsFolder = workspace:WaitForChild("Item")
+                local startTime = tick()
+
+                local function getPrompt(obj)
+                    for _, v in ipairs(obj:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") and v.Enabled then
+                            return v
+                        end
+                    end
+                end
+
+                local function isTarget(name)
+                    local lowerName = string.lower(name)
+                    for target, _ in pairs(selectedTargets) do
+                        if string.find(lowerName, string.lower(target)) then
+                            return true
+                        end
+                    end
+                    return false
+                end
+
+                while farming do
+                    if tick() - startTime >= 60 then
+                        TeleportService:Teleport(game.PlaceId, player)
+                        break
+                    end
+
+                    for _, v in ipairs(itemsFolder:GetChildren()) do
+                        if not farming then break end
+                        if v:IsA("BasePart") and isTarget(v.Name) then
+                            hrp.CFrame = v.CFrame + Vector3.new(0,2.8,0)
+                            task.wait(0.07)
+                            local prompt = getPrompt(v)
+                            if prompt then
+                                fireproximityprompt(prompt)
+                                fireproximityprompt(prompt)
+                            end
+                            task.wait()
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+        end
+
+    end
+end)
