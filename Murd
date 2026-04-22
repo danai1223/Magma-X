@@ -4,12 +4,46 @@ local UIS = game:GetService("UserInputService")
 local LP = Players.LocalPlayer
 local Char, HRP
 
-local ESPEnabled = true
-local lastShot = 0
-local shootCooldown = 0
-local bulletSpeed = 500
+local function AddGunDropESP(obj)
+    if not obj then return end
 
-local lastData = {}
+    if obj:IsA("BasePart") then
+        if obj:FindFirstChild("GunESP") then return end
+
+        local h = Instance.new("Highlight")
+        h.Name = "GunESP"
+        h.FillColor = Color3.fromRGB(255,255,0)
+        h.OutlineColor = Color3.fromRGB(255,255,0)
+        h.FillTransparency = 0.2
+        h.OutlineTransparency = 0
+        h.Adornee = obj
+        h.Parent = obj
+
+    elseif obj:FindFirstChild("Handle") then
+        local handle = obj.Handle
+        if handle:FindFirstChild("GunESP") then return end
+
+        local h = Instance.new("Highlight")
+        h.Name = "GunESP"
+        h.FillColor = Color3.fromRGB(255,255,0)
+        h.OutlineColor = Color3.fromRGB(255,255,0)
+        h.FillTransparency = 0.2
+        h.OutlineTransparency = 0
+        h.Adornee = handle
+        h.Parent = handle
+    end
+end
+
+task.spawn(function()
+    while task.wait(1) do
+        local gunDrop = workspace:FindFirstChild("GunDrop", true)
+        if gunDrop then
+            AddGunDropESP(gunDrop)
+        end
+    end
+end)
+
+local ESPEnabled = true
 
 local function UpdateChar()
     Char = LP.Character or LP.CharacterAdded:Wait()
@@ -22,20 +56,32 @@ LP.CharacterAdded:Connect(UpdateChar)
 local function GetRole(plr)
     local b = plr:FindFirstChild("Backpack")
     local c = plr.Character
-    if (b and b:FindFirstChild("Knife")) or (c and c:FindFirstChild("Knife")) then return "Murder" end
-    if (b and b:FindFirstChild("Gun")) or (c and c:FindFirstChild("Gun")) then return "Sheriff" end
+
+    if (b and b:FindFirstChild("Knife")) or (c and c:FindFirstChild("Knife")) then
+        return "Murder"
+    end
+
+    if (b and b:FindFirstChild("Gun")) or (c and c:FindFirstChild("Gun")) then
+        return "Sheriff"
+    end
+
     return "Innocent"
 end
 
 local function GetColor(role)
-    if role == "Murder" then return Color3.fromRGB(255,0,0) end
-    if role == "Sheriff" then return Color3.fromRGB(0,0,255) end
-    return Color3.fromRGB(0,255,0)
+    if role == "Murder" then
+        return Color3.fromRGB(255,0,0)
+    elseif role == "Sheriff" then
+        return Color3.fromRGB(0,0,255)
+    else
+        return Color3.fromRGB(0,255,0)
+    end
 end
 
 local function AddESP(plr)
     if plr == LP or not plr.Character then return end
     if plr.Character:FindFirstChild("ESP") then return end
+
     local h = Instance.new("Highlight")
     h.Name = "ESP"
     h.FillTransparency = 0.3
@@ -50,6 +96,7 @@ task.spawn(function()
             for _,plr in pairs(Players:GetPlayers()) do
                 if plr ~= LP and plr.Character then
                     AddESP(plr)
+
                     local esp = plr.Character:FindFirstChild("ESP")
                     if esp then
                         local color = GetColor(GetRole(plr))
@@ -70,89 +117,82 @@ local function GetMurder()
     end
 end
 
-local function GetSmoothedVelocity(plr, part)
-    local now = tick()
+local function Predict(part)
+    local pos = part.Position
+    local vel = part.AssemblyLinearVelocity
+    local distance = (HRP.Position - pos).Magnitude
 
-    if not lastData[plr] then
-        lastData[plr] = {
-            pos = part.Position,
-            time = now
-        }
-        return part.AssemblyLinearVelocity
+    local bulletSpeed = 190
+    local t = math.clamp(distance / bulletSpeed, 0.05, 0.25)
+
+    local ping = 0.025
+
+    if distance < 8 or vel.Magnitude < 1 then
+        return pos
     end
 
-    local data = lastData[plr]
-    local dt = now - data.time
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {part.Parent}
+    params.FilterType = Enum.RaycastFilterType.Blacklist
 
-    if dt <= 0 then
-        return part.AssemblyLinearVelocity
+    local downRay = workspace:Raycast(pos, Vector3.new(0, -6, 0), params)
+    local upRay = workspace:Raycast(pos, Vector3.new(0, 6, 0), params)
+
+    local horizontalVel = Vector3.new(vel.X, 0, vel.Z)
+
+    if horizontalVel.Magnitude > 10 then
+        horizontalVel = horizontalVel * 0.75
     end
 
-    local vel = (part.Position - data.pos) / dt
+    local yVel = vel.Y
 
-    lastData[plr] = {
-        pos = part.Position,
-        time = now
-    }
-
-    return vel
-end
-
-local function Predict(plr, part, humanoid)
-    local vel = GetSmoothedVelocity(plr, part)
-
-    if vel.Magnitude < 2 then
-        return part.Position
-    end
-
-    local flatVel = Vector3.new(vel.X, 0, vel.Z)
-    local dist = (HRP.Position - part.Position).Magnitude
-    local t = dist / bulletSpeed
-
-    local state = humanoid:GetState()
-    local yOffset = 0
-
-    if state == Enum.HumanoidStateType.Jumping then
-        yOffset = 3.5
-    elseif state == Enum.HumanoidStateType.Freefall then
-        yOffset = -2.5
+    if downRay or upRay then
+        yVel = 0
     else
-        yOffset = 0
+        if math.abs(yVel) < 6 then
+            yVel = 0
+        else
+            yVel = yVel * 0.3
+        end
     end
 
-    local predictedXZ = part.Position + (flatVel * t * 0.85)
-    local predictedY = part.Position.Y + (math.clamp(vel.Y, -50, 50) * t) + yOffset
+    local finalVel = Vector3.new(horizontalVel.X, yVel, horizontalVel.Z)
 
-    return Vector3.new(predictedXZ.X, predictedY, predictedXZ.Z)
+    return pos + finalVel * (t + ping)
 end
 
 local function ShootOnce()
-    if tick() - lastShot < shootCooldown then return end
-    lastShot = tick()
-
     local m = GetMurder()
+
     if m and m.Character then
         local target = m.Character:FindFirstChild("HumanoidRootPart")
-        local humanoid = m.Character:FindFirstChildOfClass("Humanoid")
         local gun = LP.Backpack:FindFirstChild("Gun") or LP.Character:FindFirstChild("Gun")
 
-        if target and gun and humanoid and gun:FindFirstChild("Handle") then
+        if target and gun and gun:FindFirstChild("Handle") then
             local shoot = gun:FindFirstChild("Shoot")
+
             if shoot then
-                local pos = Predict(m, target, humanoid)
-                local origin = gun.Handle.Position
-                local cf = CFrame.lookAt(origin, pos)
-                shoot:FireServer(cf, CFrame.new(pos))
+                local pos = Predict(target)
+
+                shoot:FireServer(
+                    CFrame.new(gun.Handle.Position, pos),
+                    CFrame.new(pos)
+                )
             end
         end
     end
 end
 
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 local function Dragify(btn)
-    local dragging, dragInput, dragStart, startPos
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
+
     btn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -160,14 +200,17 @@ local function Dragify(btn)
             startPos = btn.Position
         end
     end)
+
     btn.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
+
     UIS.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
+
             btn.Position = UDim2.new(
                 startPos.X.Scale,
                 startPos.X.Offset + delta.X,
@@ -176,6 +219,7 @@ local function Dragify(btn)
             )
         end
     end)
+
     btn.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
@@ -183,51 +227,37 @@ local function Dragify(btn)
     end)
 end
 
-local ShootBtn = Instance.new("TextButton", ScreenGui)
-ShootBtn.Size = UDim2.new(0,70,0,70)
-ShootBtn.Position = UDim2.new(0.92,0,0.75,0)
-ShootBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-ShootBtn.BackgroundTransparency = 0.75
-ShootBtn.Text = "FIRE"
-ShootBtn.TextTransparency = 0.2
-Instance.new("UICorner", ShootBtn).CornerRadius = UDim.new(1,0)
-local stroke = Instance.new("UIStroke", ShootBtn)
-stroke.Transparency = 0.3
-stroke.Thickness = 1
-Dragify(ShootBtn)
+local function MakeButton(text,posY)
+    local b = Instance.new("TextButton")
+    b.Parent = ScreenGui
+    b.Size = UDim2.new(0,70,0,70)
+    b.Position = UDim2.new(0.92,0,posY,0)
+    b.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    b.BackgroundTransparency = 0.75
+    b.Text = text
+    b.TextTransparency = 0.2
 
-local GrabBtn = Instance.new("TextButton", ScreenGui)
-GrabBtn.Size = UDim2.new(0,70,0,70)
-GrabBtn.Position = UDim2.new(0.92,0,0.60,0)
-GrabBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-GrabBtn.BackgroundTransparency = 0.75
-GrabBtn.Text = "GRAB"
-GrabBtn.TextTransparency = 0.2
-Instance.new("UICorner", GrabBtn).CornerRadius = UDim.new(1,0)
-local stroke2 = Instance.new("UIStroke", GrabBtn)
-stroke2.Transparency = 0.3
-stroke2.Thickness = 1
-Dragify(GrabBtn)
+    Instance.new("UICorner",b).CornerRadius = UDim.new(1,0)
 
-local KillBtn = Instance.new("TextButton", ScreenGui)
-KillBtn.Size = UDim2.new(0,70,0,70)
-KillBtn.Position = UDim2.new(0.92,0,0.45,0)
-KillBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-KillBtn.BackgroundTransparency = 0.75
-KillBtn.Text = "KILL"
-KillBtn.TextTransparency = 0.2
-Instance.new("UICorner", KillBtn).CornerRadius = UDim.new(1,0)
-local stroke3 = Instance.new("UIStroke", KillBtn)
-stroke3.Transparency = 0.3
-stroke3.Thickness = 1
-Dragify(KillBtn)
+    local s = Instance.new("UIStroke",b)
+    s.Transparency = 0.3
+    s.Thickness = 1
+
+    Dragify(b)
+
+    return b
+end
+
+local ShootBtn = MakeButton("FIRE",0.75)
+local GrabBtn = MakeButton("GRAB",0.60)
 
 ShootBtn.MouseButton1Click:Connect(function()
     ShootOnce()
 end)
 
 GrabBtn.MouseButton1Click:Connect(function()
-    local gunDrop = workspace:FindFirstChild("GunDrop", true)
+    local gunDrop = workspace:FindFirstChild("GunDrop",true)
+
     if gunDrop and HRP then
         if gunDrop:IsA("BasePart") then
             gunDrop.CFrame = HRP.CFrame
@@ -237,36 +267,52 @@ GrabBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local function KillAll()
-    if not HRP then return end
+local UIVisible = true
 
-    local saved = {}
-    local offset = 4
+local function ToggleUI()
+    UIVisible = not UIVisible
 
-    for _,plr in pairs(Players:GetPlayers()) do
-        if plr ~= LP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            saved[plr] = plr.Character.HumanoidRootPart.CFrame
+    -- ซ่อน/โชว์ปุ่ม
+    for _,v in pairs(ScreenGui:GetChildren()) do
+        if v:IsA("TextButton") then
+            v.Visible = UIVisible
         end
     end
 
-    local start = tick()
-    while tick() - start < 2 do
-        for _,plr in pairs(Players:GetPlayers()) do
-            if plr ~= LP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local dir = (HRP.CFrame.LookVector)
-                plr.Character.HumanoidRootPart.CFrame = HRP.CFrame + (dir * offset)
+    -- เปิด/ปิด ESP
+    ESPEnabled = UIVisible
+
+    -- ลบ Highlight ทั้งหมดถ้าปิด
+    if not UIVisible then
+        for _,v in pairs(workspace:GetDescendants()) do
+            if v:IsA("Highlight") then
+                v:Destroy()
             end
-        end
-        task.wait()
-    end
-
-    for plr,cf in pairs(saved) do
-        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            plr.Character.HumanoidRootPart.CFrame = cf
         end
     end
 end
 
-KillBtn.MouseButton1Click:Connect(function()
-    KillAll()
+-- ตรวจจับปุ่มคีย์บอร์ด
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.H then
+        ToggleUI()
+    end
+
+    if input.KeyCode == Enum.KeyCode.E then
+        ShootOnce()
+    end
+
+    if input.KeyCode == Enum.KeyCode.G then
+        local gunDrop = workspace:FindFirstChild("GunDrop",true)
+
+        if gunDrop and HRP then
+            if gunDrop:IsA("BasePart") then
+                gunDrop.CFrame = HRP.CFrame
+            elseif gunDrop:FindFirstChild("Handle") then
+                gunDrop.Handle.CFrame = HRP.CFrame
+            end
+        end
+    end
 end)
